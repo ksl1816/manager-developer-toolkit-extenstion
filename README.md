@@ -44,13 +44,16 @@ The **Manager.io Developer Toolkit** is a single-file extension that runs inside
 
 ### 1. Install
 
-Add `indexfinal.html` as a Manager.io extension:
+Add `index.html` as a Manager.io extension:
 
 ```
-Manager.io → Settings → Extensions → Add Custom Extension → Upload file
+Manager.io → Settings → Extensions → Add New Extension → 
 ```
 
-Or host it on GitHub Pages and point Manager.io to the raw URL.
+Paste the below URL
+```
+https://ksl1816.github.io/manager-extension-toolkit/
+```
 
 ### 2. Load an Endpoint
 
