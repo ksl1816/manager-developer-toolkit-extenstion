@@ -1,7 +1,7 @@
-# Manager.io — Prompt Builder
+# Prompt Builder for Manager.io Extensions
 
-> **Build custom Manager.io extensions in minutes — no coding required.**  
-> Explore any API endpoint, inspect its data, and generate a complete AI prompt that produces a fully working extension.
+> **Build custom Manager.io extensions in minutes — no API knowledge required.**
+> Explore any endpoint, inspect its schema, and generate a complete AI prompt that produces a ready-to-install extension.
 
 ![Version](https://img.shields.io/badge/version-1.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Manager.io-orange)
@@ -12,15 +12,15 @@
 
 ## What It Does
 
-The **Manager.io Developer Toolkit** is a single-file extension that runs inside Manager.io. It bridges the gap between the Manager.io API and anyone who wants to build a custom extension — without needing to know the API structure, pagination rules, or how the postMessage bridge works.
+A single-file extension that runs inside Manager.io. It turns the Manager.io API into something anyone can work with — explore endpoints visually, pick the fields you need, and get a structured AI prompt that Claude, ChatGPT, or Gemini can turn into a working `.html` extension.
 
-**The full workflow in five steps:**
+**Workflow**
 
-1. **Load** any Manager.io API endpoint — one click or type it in
-2. **Inspect** the live JSON response — see every field, its type, and a sample value
-3. **Select** the fields your extension needs using the sidebar
-4. **Generate** a complete, structured AI prompt via the built-in AI Syntax Builder
-5. **Paste** the prompt into Claude, ChatGPT, or Gemini → receive a working `.html` extension
+1. **Load** any `/api4/` endpoint — one click or typed
+2. **Inspect** the live JSON — every field, type, and sample value
+3. **Select** the fields you need from the sidebar
+4. **Generate** a complete AI prompt via the built-in Builder
+5. **Paste** into your AI → receive a working extension → install it back
 
 ---
 
@@ -28,115 +28,78 @@ The **Manager.io Developer Toolkit** is a single-file extension that runs inside
 
 | | Feature | Description |
 |---|---|---|
-| 🔍 | **API Explorer** | Browse any `/api4/` endpoint with full JSON syntax highlighting |
-| ⚡ | **Quick Endpoints** | One-click shortcuts for customers, invoices, payments, inventory, employees, reports, and more |
-| ⬇ | **Load All Records** | Automatically follows all pagination tokens — Manager.io caps responses at 50 records per call; this tool fetches everything |
-| 🗂 | **Schema Inspector** | Left sidebar shows every field path, data type (str / num / bool / arr / obj / UUID), and a live sample value |
-| 📋 | **Context Buffer** | Save responses from multiple endpoints and combine them in a single prompt |
-| 🤖 | **AI Syntax Builder** | 5-step wizard — pick a template, describe your goal, select fields, choose a style, generate the prompt |
-| 🎨 | **Style Themes** | Generated extensions support Dark, Light, and Minimal themes |
-| 📖 | **Built-in Guide** | "How to Use" button in the toolbar — full step-by-step guide without leaving the extension |
-| ⎘ | **Copy / Download** | Copy the prompt to clipboard or download an `.html` skeleton directly |
+| 🔍 | **API Explorer** | Browse any `/api4/` endpoint with JSON syntax highlighting |
+| ⚡ | **Quick Endpoints** | One-click shortcuts for all common list and report endpoints |
+| ⬇ | **Load All** | Follows pagination tokens automatically — no 50-record limit |
+| 🗂 | **Schema Inspector** | Every field path, data type, and sample value in a clean sidebar |
+| 📋 | **Context Buffer** | Combine multiple endpoints into a single prompt |
+| 🤖 | **AI Builder** | 5-step wizard that outputs a complete copy-paste prompt |
+| 🟢 | **Live Connection Check** | Confirms it's actually connected to Manager.io |
+| 🔒 | **Security Layer** | Origin-pinned postMessage, CSP, XSS-safe rendering, GET-only |
 
 ---
 
 ## Quick Start
 
-### 1. Install
+**1. Install**
 
-Add `index.html` as a Manager.io extension:
+Manager.io → **Settings → Extensions → Add New Extension** → paste URL:
 
-```
-Manager.io → Settings → Extensions → Add New Extension → 
-```
-
-Paste the below URL
 ```
 https://ksl1816.github.io/manager-extension-toolkit/
 ```
 
-### 2. Load an Endpoint
+**2. Use it**
 
-Click any quick button (e.g. **sales invoices**) or type an endpoint name and press Enter:
+Click any quick endpoint → inspect the schema → tick the fields you want → click the floating **⎘ AI Context Buffer** button → switch to the **AI Builder** tab → fill in the 5 steps → **⚡ Generate**.
 
-```
-batch-sales-invoice
-batch-customer
-aged-receivables
-profit-and-loss-statement
-```
+Copy the output, paste it into Claude / ChatGPT / Gemini, save the returned HTML, and install it back into Manager.io.
 
-Click **⬇ Load All** to fetch every record across all pages.
-
-### 3. Select Fields
-
-Use the left sidebar to tick the fields your extension needs. Click **Values only** to skip parent objects and keep only usable data fields.
-
-### 4. Open the AI Syntax Builder
-
-Click the floating **⎘ AI Context Buffer** button → switch to **AI Syntax Builder** tab → fill in the 5 steps → click **⚡ Generate**.
-
-### 5. Paste into an AI and Install
-
-Copy the generated prompt → paste into Claude, ChatGPT, or Gemini → save the returned HTML → upload as a new Manager.io extension.
-
-> 📖 Click the **"How to Use"** button inside the extension for the full built-in guide.
+> 📖 Click **"How to Use"** inside the extension for the full built-in guide.
 
 ---
 
 ## Supported Endpoints
 
-**Lists**
-`batch-customer` · `batch-supplier` · `batch-sales-invoice` · `batch-purchase-invoice` · `batch-receipt` · `batch-payment` · `batch-inventory-item` · `batch-employee` · `batch-bank-or-cash-account` · `batch-journal-entry`
+**Lists:** `customer-batch` · `supplier-batch` · `sales-invoice-batch` · `purchase-invoice-batch` · `receipt-batch` · `payment-batch` · `inventory-item-batch` · `employee-batch` · `bank-or-cash-account-batch` · `journal-entry-batch` · `sales-quote-batch` · `sales-order-batch` · `purchase-order-batch` · `expense-claim-batch`
 
-**Summaries**
-`batch-customer-summary` · `batch-supplier-summary` · `batch-sales-invoice-totals-by-customer`
+**Reports:** `aged-receivables-batch` · `aged-payables-batch` · `trial-balance-batch` · `profit-and-loss-statement-batch` · `balance-sheet-batch` · `general-ledger-transactions-batch`
 
-**Reports**
-`aged-receivables` · `aged-payables` · `trial-balance` · `profit-and-loss-statement` · `balance-sheet` · `general-ledger-transactions`
-
-**Meta**
-`businesses`
+**Meta:** `businesses`
 
 Any other valid `/api4/` endpoint can be typed manually.
 
 ---
 
-## Extension Templates
+## Security
 
-When generating a prompt, choose from these presets or write your own goal:
+All API calls go through Manager.io's `postMessage` bridge. Active runtime protections:
 
-| Template | Best for |
-|---|---|
-| 📊 Dashboard | Summary cards + key metrics at a glance |
-| 📋 Data Table | Searchable, sortable list of records |
-| 🔢 KPI Cards | Large highlight numbers |
-| 📈 Chart | Bar, line, or pie charts |
-| 🔍 Search / Filter | Find and filter specific records |
-| ✏️ Create / Edit Form | Data entry forms |
-| ⬇️ CSV Export | Download data as a spreadsheet |
-| ✨ Custom | Describe anything in plain English |
+- **Origin-pinned postMessage** — host origin locked after the first response; spoofed messages are dropped
+- **Read-only access** — GET requests only, nothing can be modified in Manager.io
+- **Endpoint validation** — blocks `javascript:`, `data:`, and other dangerous schemes before any call is made
+- **Strict CSP** — no outbound network calls except Google Fonts (style only)
+- **XSS-safe rendering** — all JSON values HTML-escaped before DOM insertion
+- **Zero tracking** — no analytics, cookies, or telemetry
 
----
-
-## File Structure
-
-```
-manager-developer-toolkit/
-├── indexfinal.html     ← The complete toolkit (single file, zero dependencies)
-└── README.md           ← This file
-```
+Click the **🔒 Secure** badge in the top bar to inspect the active layer live.
 
 ---
 
 ## Technical Notes
 
-- **Zero dependencies** — pure HTML, CSS, and vanilla JavaScript
-- **No server required** — works as a static file hosted anywhere
-- **Secure** — all API calls go through Manager.io's `postMessage` bridge (same as all official extensions)
-- **Pagination handled automatically** — follows `next_page_token`, `nextPageToken`, and `_links.next.href`
-- **AI-agnostic** — the generated prompt works with Claude, ChatGPT, Gemini, or any LLM
+- **Zero dependencies** — pure HTML, CSS, vanilla JavaScript
+- **Single file** — works as static hosting anywhere (GitHub Pages, Netlify, Vercel)
+- **AI-agnostic** — the generated prompt works with any LLM
 - **Responsive** — sidebar collapses on small screens
+
+---
+
+## Custom Development
+
+This tool is **free forever**. If you'd rather have a production-ready extension designed, built, and tested for your specific workflow, custom development is available.
+
+**→ [ksl1816.github.io/ksl-solution-site](https://ksl1816.github.io/ksl-solution-site/)**
 
 ---
 
@@ -146,10 +109,8 @@ MIT — free to use, modify, and distribute.
 
 ---
 
-## 👤 Author
+## Author
 
 **ksl1816** — [github.com/ksl1816](https://github.com/ksl1816)
 
-*Contributions, bug reports, and feature suggestions are welcome — open an issue or pull request.*
-
-*Built for the Manager.io developer and user community.*
+*Contributions, bug reports, and feature suggestions welcome.*
