@@ -1,0 +1,3394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- ═══════════════ SECURITY HEADERS ═══════════════
+     • CSP locks down what can run/load in this page
+     • Referrer policy prevents leaking paths to the outside
+     • Nothing can navigate top-level frame away (frame-ancestors *)
+     • This page does not reach Manager.io's own API over the network
+       (that stays postMessage-only)
+═══════════════════════════════════════════════════ -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self'; frame-ancestors *; form-action 'none'; base-uri 'self';">
+<meta name="referrer" content="no-referrer">
+<title>Prompt Builder for Manager.io Extensions — v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════ */
+:root{
+  --bg:#05080f;
+  --bg2:#080c17;
+  --surface:#0b1120;
+  --surface2:#0f1729;
+  --surface3:#131e34;
+  --surface4:#18253d;
+  --border:#1a2842;
+  --border2:#213252;
+  --border3:#2a3f66;
+  --text:#d8e8ff;
+  --text2:#a8c0e0;
+  --muted:#5a7299;
+  --dim:#334d73;
+  --accent:#3b82f6;
+  --accent2:#60a5fa;
+  --accent3:#93c5fd;
+  --green:#10b981;
+  --green2:#34d399;
+  --green3:#6ee7b7;
+  --amber:#f59e0b;
+  --amber2:#fbbf24;
+  --red:#ef4444;
+  --red2:#f87171;
+  --purple:#8b5cf6;
+  --purple2:#a78bfa;
+  --cyan:#06b6d4;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --radius:6px;
+  --radius2:10px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  color:var(--text);
+  font-size:13px;
+  line-height:1.5;
+}
+
+/* Subtle grid texture */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(59,130,246,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* Ambient glow */
+body::after{
+  content:'';
+  position:fixed;
+  top:-200px;left:50%;
+  transform:translateX(-50%);
+  width:900px;height:500px;
+  background:radial-gradient(ellipse, rgba(59,130,246,.06) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+.app{
+  display:flex;flex-direction:column;
+  height:100vh;overflow:hidden;
+  position:relative;z-index:1;
+}
+
+/* ═══════════════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════════════ */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:0 20px;height:48px;
+  background:rgba(8,12,23,.95);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  backdrop-filter:blur(12px);
+}
+
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:26px;height:26px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;
+  flex-shrink:0;
+}
+.logo{
+  font-size:14px;font-weight:700;letter-spacing:-.02em;
+  color:var(--text);white-space:nowrap;
+}
+.logo span{color:var(--accent2)}
+
+.topbar-divider{width:1px;height:18px;background:var(--border2);flex-shrink:0}
+
+.topbar-meta{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+}
+.version-badge{
+  padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  background:rgba(59,130,246,.12);color:var(--accent2);
+  border:1px solid rgba(59,130,246,.2);
+}
+.readonly-badge{
+  padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  background:rgba(16,185,129,.1);color:var(--green2);
+  border:1px solid rgba(16,185,129,.2);
+}
+
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+.clock{
+  font-family:var(--mono);font-size:11px;color:var(--dim);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:3px 8px;letter-spacing:.05em;
+}
+
+.btn-guide{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:var(--radius);
+  background:var(--surface3);border:1px solid var(--border2);
+  color:var(--text2);font-family:var(--sans);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.btn-guide:hover{background:var(--surface4);border-color:var(--border3);color:var(--text)}
+.btn-guide-icon{font-size:12px}
+
+/* ═══════════════════════════════════════════════
+   REQUEST BAR
+═══════════════════════════════════════════════ */
+.requestbar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  flex-wrap:wrap;
+}
+
+.method-badge{
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  color:var(--green2);background:rgba(16,185,129,.1);
+  border:1px solid rgba(16,185,129,.2);border-radius:5px;
+  padding:6px 10px;white-space:nowrap;letter-spacing:.04em;
+  flex-shrink:0;
+}
+
+.base-badge{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:6px 10px;white-space:nowrap;
+  flex-shrink:0;
+}
+
+.endpoint-wrap{flex:1;min-width:160px;position:relative}
+.endpoint-wrap input{
+  width:100%;padding:6px 10px;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:5px;color:var(--text);
+  font-family:var(--mono);font-size:12px;
+  outline:none;transition:all .15s;
+}
+.endpoint-wrap input:focus{border-color:var(--accent);background:var(--surface3)}
+.endpoint-wrap input::placeholder{color:var(--dim)}
+
+.pagesize-wrap{
+  display:flex;align-items:center;gap:0;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:5px;overflow:hidden;flex-shrink:0;
+}
+.pagesize-wrap label{
+  font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);padding:0 8px;white-space:nowrap;
+}
+.pagesize-wrap input{
+  width:64px;padding:6px 8px;text-align:center;
+  background:var(--surface3);border:none;border-left:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:12px;outline:none;
+}
+
+/* Action buttons */
+.btn{
+  border:none;border-radius:5px;padding:6px 14px;
+  font-family:var(--sans);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+  display:flex;align-items:center;gap:5px;
+}
+.btn:active{transform:scale(.97)}
+
+.btn-load{background:var(--accent);color:#fff}
+.btn-load:hover{background:#2563eb;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+
+.btn-loadall{background:rgba(139,92,246,.2);color:var(--purple2);border:1px solid rgba(139,92,246,.3)}
+.btn-loadall:hover{background:rgba(139,92,246,.3);border-color:var(--purple2)}
+
+.btn-stop{
+  background:rgba(239,68,68,.15);color:var(--red2);
+  border:1px solid rgba(239,68,68,.3);
+  animation:pulse-red 1.4s ease-in-out infinite;
+}
+@keyframes pulse-red{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.3)}50%{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+
+.btn-secondary{background:var(--surface3);color:var(--text2);border:1px solid var(--border2)}
+.btn-secondary:hover{background:var(--surface4);border-color:var(--border3);color:var(--text)}
+
+.btn-schema{background:var(--surface3);color:var(--purple2);border:1px solid rgba(139,92,246,.25)}
+.btn-schema:hover{background:rgba(139,92,246,.1);border-color:var(--purple2)}
+
+.btn-icon{font-size:13px;line-height:1}
+
+/* ═══════════════════════════════════════════════
+   STATUS BAR
+═══════════════════════════════════════════════ */
+.statusbar{
+  display:flex;align-items:center;gap:0;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  background:var(--surface);
+  overflow-x:auto;
+}
+.statusbar::-webkit-scrollbar{display:none}
+
+.stat{
+  display:flex;flex-direction:column;gap:2px;
+  padding:7px 16px;border-right:1px solid var(--border);
+  flex-shrink:0;min-width:80px;
+}
+.stat:last-child{border-right:none;margin-left:auto}
+.stat-label{
+  font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);
+}
+.stat-value{font-family:var(--mono);font-size:13px;font-weight:500}
+.sv-idle{color:var(--dim)}
+.sv-ok{color:var(--green2)}
+.sv-err{color:var(--red2)}
+.sv-load{color:var(--amber2);animation:blink .9s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ═══════════════════════════════════════════════
+   PROGRESS / TOTAL BAR
+═══════════════════════════════════════════════ */
+.progressbar{
+  display:none;align-items:center;gap:10px;
+  padding:5px 20px;
+  background:rgba(16,185,129,.04);
+  border-bottom:1px solid rgba(16,185,129,.12);
+  flex-shrink:0;font-size:11px;font-family:var(--mono);
+}
+.progressbar.visible{display:flex}
+
+.prog-label{color:var(--dim)}
+.prog-value{color:var(--green2);font-weight:500}
+
+.prog-track{width:140px;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;flex-shrink:0}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));border-radius:2px;transition:width .3s}
+.prog-text{font-size:10px;color:var(--green);min-width:140px}
+
+.prog-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.pager-btn{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text2);font-family:var(--mono);font-size:10px;padding:3px 8px;
+  cursor:pointer;transition:all .12s;
+}
+.pager-btn:hover:not(:disabled){background:var(--surface3);border-color:var(--accent);color:var(--text)}
+.pager-btn:disabled{opacity:.3;cursor:not-allowed}
+.pager-indicator{color:var(--accent2);font-size:10px;font-family:var(--mono);min-width:70px;text-align:center}
+
+/* ═══════════════════════════════════════════════
+   QUICK BAR
+═══════════════════════════════════════════════ */
+.quickbar{
+  padding:6px 20px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+  display:flex;flex-wrap:wrap;gap:4px;align-items:center;
+}
+
+.qsep{
+  font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dim);padding:0 4px;white-space:nowrap;flex-shrink:0;
+}
+.qsep:not(:first-child){margin-left:6px}
+
+.qbtn{
+  padding:4px 9px;font-size:10px;font-family:var(--mono);font-weight:500;
+  border:1px solid;border-radius:4px;cursor:pointer;transition:all .12s;
+  white-space:nowrap;letter-spacing:.01em;
+}
+.qbtn:hover{transform:translateY(-1px)}
+.qbtn:active{transform:none}
+
+.q-list{
+  background:rgba(59,130,246,.06);color:var(--accent2);
+  border-color:rgba(59,130,246,.18);
+}
+.q-list:hover{background:rgba(59,130,246,.14);border-color:rgba(59,130,246,.35)}
+
+.q-report{
+  background:rgba(16,185,129,.06);color:var(--green2);
+  border-color:rgba(16,185,129,.18);
+}
+.q-report:hover{background:rgba(16,185,129,.14);border-color:rgba(16,185,129,.35)}
+
+.q-meta{
+  background:rgba(245,158,11,.06);color:var(--amber2);
+  border-color:rgba(245,158,11,.18);
+}
+.q-meta:hover{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.35)}
+
+/* ═══════════════════════════════════════════════
+   MAIN VIEWER
+═══════════════════════════════════════════════ */
+.viewer{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  flex:1;overflow:hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+
+.sidebar-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.sidebar-head-label{
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);display:flex;align-items:center;gap:6px;
+}
+.sidebar-head-label::before{
+  content:'';width:3px;height:12px;border-radius:2px;
+  background:linear-gradient(var(--accent),var(--purple));
+}
+.path-count{
+  font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent2);
+  background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);
+  border-radius:4px;padding:1px 6px;
+}
+
+.sidebar-toolbar{
+  display:flex;gap:4px;padding:6px 8px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.sidebar-toolbar button{
+  flex:1;padding:4px 4px;font-size:9px;font-family:var(--mono);font-weight:600;
+  background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+  color:var(--muted);cursor:pointer;transition:all .12s;white-space:nowrap;
+  letter-spacing:.02em;
+}
+.sidebar-toolbar button:hover{color:var(--text2);border-color:var(--border2);background:var(--surface3)}
+
+.sidebar-search{padding:6px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-search input{
+  width:100%;padding:5px 8px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+  color:var(--text);font-family:var(--mono);font-size:11px;outline:none;
+  transition:border-color .15s;
+}
+.sidebar-search input:focus{border-color:var(--border3)}
+.sidebar-search input::placeholder{color:var(--dim)}
+
+.path-list{flex:1;overflow-y:auto;padding:6px}
+.path-list::-webkit-scrollbar{width:3px}
+.path-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.path-list::-webkit-scrollbar-track{background:transparent}
+
+.path-item{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 7px;border-radius:4px;margin-bottom:1px;
+  font-family:var(--mono);font-size:10.5px;color:var(--muted);
+  transition:all .1s;cursor:default;
+  border:1px solid transparent;
+}
+.path-item:hover{background:var(--surface2);border-color:var(--border);color:var(--text2)}
+
+.path-item input[type=checkbox]{
+  width:12px;height:12px;flex-shrink:0;
+  accent-color:var(--accent);cursor:pointer;
+}
+.path-text{flex:1;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.path-text:hover{color:var(--accent2)}
+
+/* Type badges */
+.pt{
+  font-size:8px;padding:1px 4px;border-radius:3px;flex-shrink:0;
+  font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+}
+.pt-str{background:rgba(16,185,129,.1);color:var(--green2);border:1px solid rgba(16,185,129,.2)}
+.pt-num{background:rgba(59,130,246,.1);color:var(--accent2);border:1px solid rgba(59,130,246,.2)}
+.pt-bool{background:rgba(139,92,246,.1);color:var(--purple2);border:1px solid rgba(139,92,246,.2)}
+.pt-null{background:rgba(90,114,153,.1);color:var(--muted);border:1px solid rgba(90,114,153,.2)}
+.pt-obj{background:rgba(245,158,11,.1);color:var(--amber2);border:1px solid rgba(245,158,11,.2)}
+.pt-arr{background:rgba(239,68,68,.1);color:var(--red2);border:1px solid rgba(239,68,68,.2)}
+
+.path-val{
+  color:var(--dim);font-size:9px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:55px;flex-shrink:0;
+  font-style:italic;
+}
+
+/* ── JSON AREA ── */
+.json-area{display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+.json-toolbar{
+  display:flex;align-items:center;gap:8px;padding:6px 14px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  background:var(--surface);
+}
+
+.json-path-display{
+  font-family:var(--mono);font-size:10px;color:var(--accent2);
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.view-tabs{
+  display:flex;background:var(--surface2);
+  border:1px solid var(--border);border-radius:5px;overflow:hidden;
+  flex-shrink:0;
+}
+.view-tab{
+  padding:4px 12px;font-size:10px;font-family:var(--mono);font-weight:600;
+  background:none;border:none;color:var(--muted);cursor:pointer;
+  transition:all .12s;letter-spacing:.04em;text-transform:uppercase;
+}
+.view-tab.active{background:var(--accent);color:#fff}
+.view-tab:hover:not(.active){color:var(--text2);background:var(--surface3)}
+
+/* Result pager */
+.result-pager{
+  display:none;align-items:center;gap:8px;padding:5px 14px;
+  border-bottom:1px solid var(--border);background:var(--surface);
+  flex-shrink:0;font-family:var(--mono);font-size:10px;
+}
+.result-pager.visible{display:flex}
+.result-pager span{color:var(--muted)}
+.result-pager strong{color:var(--accent2)}
+.rp-btn{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text2);font-family:var(--mono);font-size:10px;padding:2px 8px;cursor:pointer;
+  transition:all .12s;
+}
+.rp-btn:disabled{opacity:.3;cursor:not-allowed}
+.rp-btn:not(:disabled):hover{border-color:var(--accent);color:var(--text)}
+
+pre{
+  flex:1;overflow:auto;margin:0;padding:16px 18px;
+  font-family:var(--mono);font-size:12px;line-height:1.7;
+  color:#7a9dc8;white-space:pre-wrap;word-break:break-all;
+}
+pre::-webkit-scrollbar{width:5px;height:5px}
+pre::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+pre::-webkit-scrollbar-track{background:transparent}
+
+/* JSON syntax colors */
+.jk{color:#60a5fa}
+.js{color:#34d399}
+.jn{color:#fbbf24}
+.jb{color:#a78bfa}
+.jl{color:#f87171}
+.jp{color:#475569}
+
+/* ═══════════════════════════════════════════════
+   AI CONTEXT PANEL
+═══════════════════════════════════════════════ */
+.panel-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:150;opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.panel-overlay.open{opacity:1;pointer-events:all}
+
+.ai-panel{
+  position:fixed;top:0;right:0;width:480px;height:100vh;
+  background:var(--surface);border-left:1px solid var(--border2);
+  display:flex;flex-direction:column;z-index:200;
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  box-shadow:-20px 0 60px rgba(0,0,0,.5);
+}
+.ai-panel.open{transform:translateX(0)}
+
+.ai-panel-head{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  background:var(--bg2);
+}
+.ai-panel-icon{
+  width:28px;height:28px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.ai-panel-title{font-size:13px;font-weight:700;color:var(--text)}
+.ai-panel-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+.ai-panel-close{
+  margin-left:auto;background:none;border:1px solid var(--border);
+  color:var(--muted);font-size:14px;cursor:pointer;padding:4px 8px;
+  border-radius:4px;transition:all .12s;line-height:1;
+}
+.ai-panel-close:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red2)}
+
+/* Panel tabs */
+.panel-tabs{
+  display:flex;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg2);
+}
+.panel-tab{
+  flex:1;padding:9px 8px;font-size:11px;font-weight:600;
+  font-family:var(--sans);background:none;border:none;
+  color:var(--muted);cursor:pointer;
+  border-bottom:2px solid transparent;transition:all .14s;
+}
+.panel-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.panel-tab:hover:not(.active){color:var(--text2)}
+
+.panel-section{display:none;flex:1;flex-direction:column;overflow:hidden}
+.panel-section.active{display:flex}
+
+/* ── Context Buffer Tab ── */
+.sel-items{flex:1;overflow-y:auto;padding:10px}
+.sel-items::-webkit-scrollbar{width:3px}
+.sel-items::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.sel-empty{
+  color:var(--dim);font-size:12px;padding:30px 20px;
+  text-align:center;line-height:1.8;
+}
+.sel-empty code{
+  font-family:var(--mono);font-size:11px;
+  background:rgba(16,185,129,.1);color:var(--green2);
+  border:1px solid rgba(16,185,129,.2);border-radius:4px;padding:1px 6px;
+}
+
+.sel-item{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:7px;padding:10px 12px;margin-bottom:6px;
+  cursor:pointer;transition:all .14s;
+}
+.sel-item:hover{border-color:var(--border2)}
+.sel-item.checked{border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.05)}
+.sel-item input[type=checkbox]{
+  width:14px;height:14px;flex-shrink:0;margin-top:2px;
+  accent-color:var(--green);cursor:pointer;
+}
+.sel-item-body{flex:1;min-width:0}
+.sel-item-ep{
+  font-family:var(--mono);font-size:10px;color:var(--accent2);
+  font-weight:500;margin-bottom:3px;
+}
+.sel-item-ep-method{
+  display:inline-block;font-size:9px;font-weight:700;
+  color:var(--green2);background:rgba(16,185,129,.1);
+  border:1px solid rgba(16,185,129,.2);border-radius:3px;
+  padding:0 5px;margin-right:5px;letter-spacing:.04em;
+}
+.sel-item-preview{
+  font-family:var(--mono);font-size:10px;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sel-item-meta{font-size:10px;color:var(--muted);margin-top:3px;display:flex;gap:8px}
+.sel-item-meta span{
+  background:var(--surface3);border-radius:3px;padding:1px 6px;
+  border:1px solid var(--border);
+}
+.sel-remove{
+  background:none;border:none;color:var(--dim);cursor:pointer;
+  font-size:13px;padding:2px 4px;border-radius:3px;transition:all .12s;
+  flex-shrink:0;
+}
+.sel-remove:hover{background:rgba(239,68,68,.1);color:var(--red2)}
+
+.sel-preview-output{
+  font-family:var(--mono);font-size:10px;color:var(--green2);
+  white-space:pre-wrap;word-break:break-all;background:var(--bg);
+  border-top:1px solid var(--border);padding:10px 12px;
+  display:none;max-height:180px;overflow:auto;
+  border-radius:0 0 7px 7px;
+}
+.sel-preview-output.visible{display:block}
+
+.sel-footer{
+  padding:10px 14px;border-top:1px solid var(--border);
+  flex-shrink:0;display:flex;flex-direction:column;gap:6px;
+  background:var(--bg2);
+}
+.sel-footer-info{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.btn-sel-copy{
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#031a0e;border:none;border-radius:6px;padding:9px;
+  font-family:var(--sans);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s;
+}
+.btn-sel-copy:hover:not(:disabled){box-shadow:0 4px 18px rgba(16,185,129,.3)}
+.btn-sel-copy:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.5)}
+.btn-sel-clear{
+  background:var(--surface3);border:1px solid var(--border2);
+  border-radius:6px;padding:6px;font-family:var(--sans);
+  font-size:11px;color:var(--muted);cursor:pointer;transition:all .12s;
+}
+.btn-sel-clear:hover{color:var(--text2);border-color:var(--border3)}
+
+/* ── AI Builder Tab ── */
+.ai-builder{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+.ai-builder::-webkit-scrollbar{width:3px}
+.ai-builder::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.ai-notice{
+  font-size:11px;color:var(--muted);line-height:1.65;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:7px;padding:10px 12px;
+}
+.ai-notice strong{color:var(--accent2)}
+.ai-notice .notice-warn{
+  display:inline-block;margin-top:6px;font-size:10px;
+  color:var(--amber2);background:rgba(245,158,11,.08);
+  border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:4px 8px;
+}
+
+.ai-section{display:flex;flex-direction:column;gap:6px}
+.ai-section-label{
+  font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--dim);display:flex;align-items:center;gap:6px;
+}
+.ai-section-label::before{
+  content:'';width:2px;height:10px;border-radius:1px;
+  background:var(--accent);
+}
+
+.template-grid{display:flex;flex-wrap:wrap;gap:4px}
+.chip{
+  padding:4px 10px;font-size:10px;font-family:var(--mono);font-weight:600;
+  background:var(--surface2);border:1px solid var(--border2);border-radius:4px;
+  color:var(--muted);cursor:pointer;transition:all .12s;white-space:nowrap;
+}
+.chip:hover{border-color:var(--border3);color:var(--text2)}
+.chip.active{background:rgba(59,130,246,.12);border-color:var(--accent);color:var(--accent2)}
+
+.goal-input{
+  width:100%;padding:8px 10px;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;
+  outline:none;transition:border-color .15s;
+}
+.goal-input:focus{border-color:var(--accent)}
+.goal-input::placeholder{color:var(--dim)}
+
+.endpoint-tags{
+  display:flex;flex-direction:column;gap:3px;
+  max-height:80px;overflow-y:auto;
+}
+.ep-tag{
+  display:flex;align-items:center;gap:6px;padding:5px 8px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;font-family:var(--mono);font-size:10px;color:var(--accent2);
+}
+.ep-dot{width:5px;height:5px;border-radius:50%;background:var(--green2);flex-shrink:0}
+
+.field-tags{display:flex;flex-wrap:wrap;gap:3px}
+.field-tag{
+  display:inline-flex;align-items:center;gap:3px;padding:2px 7px;
+  background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+  border-radius:4px;font-family:var(--mono);font-size:9px;color:var(--green2);
+}
+.field-count-badge{color:var(--accent2);font-weight:600;font-size:10px}
+
+.options-list{display:flex;flex-direction:column;gap:5px}
+.option-row{
+  display:flex;align-items:center;gap:7px;
+  font-size:11px;color:var(--muted);cursor:pointer;
+  padding:4px 0;
+}
+.option-row input{accent-color:var(--purple);width:13px;height:13px}
+.option-row:hover{color:var(--text2)}
+
+.btn-generate{
+  background:linear-gradient(135deg,var(--purple),var(--purple2));
+  color:#fff;border:none;border-radius:6px;padding:11px;
+  font-family:var(--sans);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn-generate:hover{box-shadow:0 4px 20px rgba(139,92,246,.35)}
+.btn-generate:disabled{opacity:.35;cursor:not-allowed}
+
+.ai-output-wrap{display:flex;flex-direction:column;gap:5px}
+.ai-output-meta{
+  display:flex;align-items:center;justify-content:space-between;padding:0 2px;
+}
+.ai-output-label{font-size:9px;color:var(--dim);font-family:var(--mono)}
+.ai-output-actions{display:flex;gap:4px}
+.btn-ai-action{
+  background:var(--surface3);border:1px solid var(--border2);border-radius:4px;
+  color:var(--text2);font-family:var(--sans);font-size:10px;font-weight:600;
+  padding:4px 10px;cursor:pointer;transition:all .12s;
+}
+.btn-ai-action:hover{border-color:var(--border3);color:var(--text)}
+.btn-ai-download{color:var(--green2);border-color:rgba(16,185,129,.25);display:none}
+.btn-ai-download:hover{border-color:var(--green2);background:rgba(16,185,129,.08)}
+
+.ai-output-textarea{
+  width:100%;min-height:280px;max-height:480px;padding:12px;
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  color:var(--green2);font-family:var(--mono);font-size:10.5px;line-height:1.65;
+  resize:vertical;outline:none;white-space:pre-wrap;
+}
+
+/* ═══════════════════════════════════════════════
+   FLOATING TRIGGER BUTTON
+═══════════════════════════════════════════════ */
+.btn-panel-trigger{
+  position:fixed;bottom:20px;right:20px;z-index:100;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  color:#fff;border:none;border-radius:10px;
+  padding:10px 18px;font-family:var(--sans);font-size:12px;font-weight:700;
+  cursor:pointer;box-shadow:0 4px 24px rgba(59,130,246,.35);
+  transition:all .2s;display:flex;align-items:center;gap:8px;
+}
+.btn-panel-trigger:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 32px rgba(59,130,246,.5);
+}
+.trigger-badge{
+  background:rgba(255,255,255,.2);border-radius:8px;
+  padding:1px 7px;font-size:10px;font-weight:700;
+}
+
+/* ═══════════════════════════════════════════════
+   TOOLBAR SAVE BUTTON (injected)
+═══════════════════════════════════════════════ */
+.toolbar-save-btn{
+  background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);
+  border-radius:4px;color:var(--green2);font-family:var(--mono);
+  font-size:10px;padding:4px 9px;cursor:pointer;
+  white-space:nowrap;transition:all .12s;
+}
+.toolbar-save-btn:hover{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4)}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:18px;left:50%;
+  transform:translateX(-50%) translateY(60px);opacity:0;
+  background:var(--surface4);color:var(--text);
+  border:1px solid var(--border2);
+  font-family:var(--sans);font-size:12px;font-weight:500;
+  padding:8px 18px;border-radius:7px;
+  transition:all .25s;pointer-events:none;z-index:999;
+  white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.5);
+  display:flex;align-items:center;gap:7px;
+}
+.toast::before{content:'✓';color:var(--green2);font-weight:700}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ═══════════════════════════════════════════════
+   GUIDE MODAL
+═══════════════════════════════════════════════ */
+.guide-overlay{
+  position:fixed;inset:0;background:rgba(4,8,18,.92);
+  z-index:500;opacity:0;pointer-events:none;transition:opacity .22s;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:28px 16px;overflow-y:auto;
+}
+.guide-overlay.open{opacity:1;pointer-events:all}
+
+.guide-modal{
+  background:var(--surface);border:1px solid var(--border2);border-radius:14px;
+  width:100%;max-width:740px;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);margin:auto;
+}
+
+.guide-header{
+  display:flex;align-items:center;gap:12px;padding:18px 22px;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(139,92,246,.04));
+  border-radius:14px 14px 0 0;
+}
+.guide-title{
+  font-size:15px;font-weight:700;color:var(--text);flex:1;
+}
+.guide-title span{color:var(--accent2)}
+.guide-close{
+  background:none;border:1px solid var(--border2);color:var(--muted);
+  font-size:14px;cursor:pointer;padding:4px 10px;border-radius:5px;
+  transition:all .12s;line-height:1;
+}
+.guide-close:hover{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red2)}
+
+.guide-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+
+.guide-intro{
+  font-size:12px;color:var(--text2);line-height:1.75;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;
+}
+.guide-intro strong{color:var(--accent2)}
+
+.guide-steps{display:flex;flex-direction:column;gap:8px}
+.guide-step{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px;transition:border-color .14s;
+}
+.guide-step:hover{border-color:var(--border2)}
+
+.step-num{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;
+}
+.sn-blue{background:rgba(59,130,246,.15);color:var(--accent2);border:1px solid rgba(59,130,246,.25)}
+.sn-green{background:rgba(16,185,129,.12);color:var(--green2);border:1px solid rgba(16,185,129,.2)}
+.sn-purple{background:rgba(139,92,246,.12);color:var(--purple2);border:1px solid rgba(139,92,246,.2)}
+.sn-amber{background:rgba(245,158,11,.12);color:var(--amber2);border:1px solid rgba(245,158,11,.2)}
+
+.step-content{flex:1;min-width:0}
+.step-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px}
+.step-desc{font-size:11px;color:var(--muted);line-height:1.65}
+.step-desc code{
+  font-family:var(--mono);font-size:10px;color:var(--accent2);
+  background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.18);
+  border-radius:3px;padding:1px 5px;
+}
+.step-tip{
+  margin-top:6px;font-size:10px;color:var(--green2);
+  background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);
+  border-radius:5px;padding:5px 9px;line-height:1.55;
+}
+
+.guide-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.gp{
+  font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 7px;
+  border-radius:4px;border:1px solid;
+}
+.gp-blue{background:rgba(59,130,246,.08);color:var(--accent2);border-color:rgba(59,130,246,.2)}
+.gp-amber{background:rgba(245,158,11,.08);color:var(--amber2);border-color:rgba(245,158,11,.18)}
+.gp-green{background:rgba(16,185,129,.08);color:var(--green2);border-color:rgba(16,185,129,.18)}
+
+.guide-warning{
+  background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);
+  border-radius:8px;padding:14px 16px;
+}
+.guide-warning-title{
+  font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--amber2);margin-bottom:8px;display:flex;align-items:center;gap:6px;
+}
+.guide-warning-body{font-size:11px;color:var(--muted);line-height:1.7;display:flex;flex-direction:column;gap:7px}
+.guide-warning-body strong{color:var(--text2)}
+.guide-warning-body .warn-note{color:var(--amber2)}
+
+.guide-footer{
+  padding:12px 22px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  border-radius:0 0 14px 14px;background:rgba(8,12,23,.6);
+}
+.guide-footer-note{font-size:10px;color:var(--dim);font-family:var(--mono)}
+.btn-guide-close{
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#031a0e;border:none;border-radius:6px;
+  padding:8px 20px;font-family:var(--sans);font-size:12px;font-weight:700;
+  cursor:pointer;transition:all .15s;
+}
+.btn-guide-close:hover{box-shadow:0 4px 16px rgba(16,185,129,.3)}
+
+/* ═══════════════════════════════════════════════
+   CONNECTION STATUS PILL (topbar)
+═══════════════════════════════════════════════ */
+.conn-pill{
+  display:flex;align-items:center;gap:7px;
+  padding:4px 11px;border-radius:20px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.04em;white-space:nowrap;
+  transition:all .25s;
+  border:1px solid;
+}
+.conn-pill .conn-dot{
+  width:7px;height:7px;border-radius:50%;
+  flex-shrink:0;position:relative;
+}
+.conn-pill.checking{
+  background:rgba(245,158,11,.08);
+  color:var(--amber2);
+  border-color:rgba(245,158,11,.25);
+}
+.conn-pill.checking .conn-dot{
+  background:var(--amber2);
+  animation:conn-pulse-amber 1.2s ease-in-out infinite;
+}
+.conn-pill.connected{
+  background:rgba(16,185,129,.1);
+  color:var(--green2);
+  border-color:rgba(16,185,129,.3);
+}
+.conn-pill.connected .conn-dot{background:var(--green2)}
+.conn-pill.connected .conn-dot::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  background:var(--green2);opacity:.4;
+  animation:conn-pulse-green 2s ease-in-out infinite;
+}
+.conn-pill.disconnected{
+  background:rgba(239,68,68,.08);
+  color:var(--red2);
+  border-color:rgba(239,68,68,.3);
+}
+.conn-pill.disconnected .conn-dot{background:var(--red2)}
+@keyframes conn-pulse-amber{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.4;transform:scale(.85)}
+}
+@keyframes conn-pulse-green{
+  0%,100%{transform:scale(1);opacity:.4}
+  50%{transform:scale(1.6);opacity:0}
+}
+
+/* ═══════════════════════════════════════════════
+   HIRE-US CTA BUTTON (topbar)
+═══════════════════════════════════════════════ */
+.btn-hire{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:var(--radius);
+  background:linear-gradient(135deg,rgba(245,158,11,.14),rgba(139,92,246,.14));
+  border:1px solid rgba(245,158,11,.3);
+  color:var(--amber2);font-family:var(--sans);font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .18s;white-space:nowrap;
+  position:relative;overflow:hidden;
+}
+.btn-hire::before{
+  content:'';position:absolute;top:0;left:-100%;
+  width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(245,158,11,.15),transparent);
+  transition:left .6s ease;
+}
+.btn-hire:hover::before{left:100%}
+.btn-hire:hover{
+  background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(139,92,246,.2));
+  border-color:var(--amber2);
+  color:#fff;
+  box-shadow:0 0 0 3px rgba(245,158,11,.12);
+}
+.btn-hire-icon{font-size:12px}
+
+/* ═══════════════════════════════════════════════
+   HIRE-US MODAL
+═══════════════════════════════════════════════ */
+.hire-overlay{
+  position:fixed;inset:0;background:rgba(4,8,18,.92);
+  z-index:600;opacity:0;pointer-events:none;transition:opacity .22s;
+  display:flex;align-items:center;justify-content:center;
+  padding:28px 16px;overflow-y:auto;
+}
+.hire-overlay.open{opacity:1;pointer-events:all}
+
+.hire-modal{
+  background:var(--surface);border:1px solid var(--border2);border-radius:14px;
+  width:100%;max-width:560px;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);margin:auto;
+  overflow:hidden;
+}
+
+.hire-header{
+  position:relative;
+  padding:28px 26px 22px;
+  background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(139,92,246,.08));
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
+}
+.hire-header::after{
+  content:'';position:absolute;top:-60px;right:-40px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(245,158,11,.15),transparent 60%);
+  pointer-events:none;
+}
+.hire-eyebrow{
+  display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--amber2);
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);
+  border-radius:20px;padding:3px 11px;margin-bottom:12px;
+  position:relative;z-index:1;
+}
+.hire-title{
+  font-size:22px;font-weight:700;color:var(--text);letter-spacing:-.02em;
+  margin-bottom:8px;line-height:1.25;position:relative;z-index:1;
+}
+.hire-title span{
+  background:linear-gradient(135deg,var(--amber2),var(--purple2));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.hire-subtitle{
+  font-size:13px;color:var(--text2);line-height:1.6;
+  position:relative;z-index:1;
+}
+.hire-close{
+  position:absolute;top:14px;right:14px;
+  background:rgba(0,0,0,.3);border:1px solid var(--border2);color:var(--muted);
+  font-size:13px;cursor:pointer;padding:5px 10px;border-radius:5px;
+  transition:all .12s;line-height:1;z-index:2;
+}
+.hire-close:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);color:var(--red2)}
+
+.hire-body{padding:22px 26px;display:flex;flex-direction:column;gap:18px}
+
+.hire-compare{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hire-col{
+  padding:14px 14px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border);
+  display:flex;flex-direction:column;gap:6px;
+}
+.hire-col.free{border-color:rgba(16,185,129,.25);background:rgba(16,185,129,.04)}
+.hire-col.pro{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)}
+.hire-col-label{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.hire-col.free .hire-col-label{color:var(--green2)}
+.hire-col.pro .hire-col-label{color:var(--amber2)}
+.hire-col-title{font-size:13px;font-weight:700;color:var(--text);line-height:1.3}
+.hire-col-desc{font-size:11px;color:var(--muted);line-height:1.55}
+
+.hire-services{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:14px 16px;
+}
+.hire-services-label{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:9px;
+}
+.hire-service-list{display:flex;flex-direction:column;gap:7px}
+.hire-service-item{
+  display:flex;gap:9px;font-size:12px;color:var(--text2);line-height:1.5;
+}
+.hire-service-check{
+  color:var(--green2);font-weight:700;flex-shrink:0;font-family:var(--mono);font-size:13px;
+}
+
+.hire-contact{
+  background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(139,92,246,.06));
+  border:1px solid rgba(59,130,246,.25);
+  border-radius:8px;padding:14px 16px;
+}
+.hire-contact-label{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--accent2);margin-bottom:6px;
+}
+.hire-contact-text{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+.hire-contact-links{display:flex;gap:8px;flex-wrap:wrap}
+.hire-link{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 13px;border-radius:6px;
+  background:var(--surface3);border:1px solid var(--border2);
+  color:var(--text);font-family:var(--mono);font-size:11px;font-weight:600;
+  text-decoration:none;transition:all .14s;
+}
+.hire-link:hover{
+  background:var(--accent);border-color:var(--accent);
+  color:#fff;transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(59,130,246,.3);
+}
+.hire-link.primary{
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  border-color:transparent;color:#fff;
+}
+.hire-link.primary:hover{
+  box-shadow:0 4px 18px rgba(139,92,246,.4);
+  transform:translateY(-1px);
+}
+
+.hire-footer{
+  padding:12px 26px;border-top:1px solid var(--border);
+  background:rgba(8,12,23,.5);
+  font-size:10px;color:var(--dim);font-family:var(--mono);
+  text-align:center;
+}
+
+/* ═══════════════════════════════════════════════
+   STANDALONE INSTALL GUIDE
+   Shown instead of everything else when this page is opened directly in
+   a browser tab (not embedded inside Manager.io as an extension iframe).
+═══════════════════════════════════════════════ */
+.install-overlay{
+  position:fixed;inset:0;background:rgba(4,8,18,.95);
+  z-index:900;display:none;align-items:flex-start;justify-content:center;
+  padding:28px 16px;overflow-y:auto;
+}
+.install-modal{
+  background:var(--surface);border:1px solid var(--border2);border-radius:14px;
+  width:100%;max-width:580px;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);margin:auto;
+}
+.install-header{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 26px 20px;
+  background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.06));
+  border-bottom:1px solid var(--border);border-radius:14px 14px 0 0;text-align:center;
+}
+.install-icon{font-size:32px}
+.install-title{font-size:17px;font-weight:700;color:var(--text)}
+.install-sub{font-size:12px;color:var(--muted);line-height:1.6;max-width:420px}
+.install-body{padding:22px 26px;display:flex;flex-direction:column;gap:14px}
+.install-steps{display:flex;flex-direction:column;gap:10px}
+.install-step{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:13px 15px;
+}
+.install-step-num{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  background:rgba(59,130,246,.15);color:var(--accent2);border:1px solid rgba(59,130,246,.25);
+}
+.install-step-title{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:4px}
+.install-step-desc{font-size:11.5px;color:var(--muted);line-height:1.6}
+.install-step-desc strong{color:var(--text2)}
+.install-link-row{display:flex;gap:8px;margin-top:10px}
+.install-link-input{
+  flex:1;padding:8px 11px;border-radius:6px;border:1px solid var(--border2);
+  background:var(--surface3);color:var(--text);font-family:var(--mono);font-size:11px;outline:none;
+}
+.install-copy-btn{
+  flex-shrink:0;padding:8px 14px;border-radius:6px;border:none;
+  background:var(--accent);color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.install-copy-btn:hover{opacity:.9}
+.install-copy-btn.copied{background:var(--green)}
+.install-footer{
+  padding:14px 26px;border-top:1px solid var(--border);text-align:center;
+  font-size:11.5px;color:var(--muted);border-radius:0 0 14px 14px;background:rgba(8,12,23,.5);
+}
+.install-footer a{color:var(--accent2);font-weight:700;text-decoration:none}
+
+/* ═══════════════════════════════════════════════
+   AI BUILDER — HIRE CTA CARD (inside panel)
+═══════════════════════════════════════════════ */
+.ai-hire-cta{
+  margin-top:4px;
+  padding:13px 14px;border-radius:8px;
+  background:linear-gradient(135deg,rgba(245,158,11,.07),rgba(139,92,246,.07));
+  border:1px solid rgba(245,158,11,.2);
+  display:flex;flex-direction:column;gap:8px;
+  position:relative;overflow:hidden;
+}
+.ai-hire-cta::before{
+  content:'';position:absolute;top:-40px;right:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle,rgba(245,158,11,.12),transparent 60%);
+  pointer-events:none;
+}
+.ai-hire-eyebrow{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;
+  color:var(--amber2);display:flex;align-items:center;gap:5px;
+  position:relative;z-index:1;
+}
+.ai-hire-title{
+  font-size:12px;font-weight:700;color:var(--text);line-height:1.45;
+  position:relative;z-index:1;
+}
+.ai-hire-desc{
+  font-size:10.5px;color:var(--muted);line-height:1.55;
+  position:relative;z-index:1;
+}
+.ai-hire-btn{
+  background:linear-gradient(135deg,var(--amber),var(--amber2));
+  color:#1a1200;border:none;border-radius:5px;padding:7px 10px;
+  font-family:var(--sans);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .15s;align-self:flex-start;
+  display:inline-flex;align-items:center;gap:5px;
+  position:relative;z-index:1;
+}
+.ai-hire-btn:hover{box-shadow:0 4px 16px rgba(245,158,11,.4);transform:translateY(-1px)}
+
+/* ═══════════════════════════════════════════════
+   SECURITY BADGE (topbar) — clickable
+═══════════════════════════════════════════════ */
+.security-badge{
+  padding:2px 7px;border-radius:4px;font-size:9px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  background:rgba(139,92,246,.1);color:var(--purple2);
+  border:1px solid rgba(139,92,246,.25);
+  cursor:pointer;transition:all .15s;
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--sans);
+}
+.security-badge:hover{
+  background:rgba(139,92,246,.18);
+  border-color:var(--purple2);
+  transform:translateY(-1px);
+}
+.security-badge-icon{font-size:10px}
+
+/* ═══════════════════════════════════════════════
+   SECURITY MODAL
+═══════════════════════════════════════════════ */
+.sec-overlay{
+  position:fixed;inset:0;background:rgba(4,8,18,.92);
+  z-index:600;opacity:0;pointer-events:none;transition:opacity .22s;
+  display:flex;align-items:center;justify-content:center;
+  padding:28px 16px;overflow-y:auto;
+}
+.sec-overlay.open{opacity:1;pointer-events:all}
+
+.sec-modal{
+  background:var(--surface);border:1px solid var(--border2);border-radius:14px;
+  width:100%;max-width:540px;display:flex;flex-direction:column;
+  box-shadow:0 24px 80px rgba(0,0,0,.8);margin:auto;overflow:hidden;
+}
+.sec-header{
+  position:relative;
+  padding:24px 26px 18px;
+  background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(59,130,246,.06));
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
+}
+.sec-header::after{
+  content:'';position:absolute;top:-60px;right:-40px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(139,92,246,.15),transparent 60%);
+  pointer-events:none;
+}
+.sec-eyebrow{
+  display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--purple2);
+  background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);
+  border-radius:20px;padding:3px 11px;margin-bottom:10px;
+  position:relative;z-index:1;
+}
+.sec-title{
+  font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;
+  margin-bottom:6px;line-height:1.3;position:relative;z-index:1;
+}
+.sec-subtitle{
+  font-size:12px;color:var(--text2);line-height:1.6;position:relative;z-index:1;
+}
+.sec-close{
+  position:absolute;top:14px;right:14px;
+  background:rgba(0,0,0,.3);border:1px solid var(--border2);color:var(--muted);
+  font-size:13px;cursor:pointer;padding:5px 10px;border-radius:5px;
+  transition:all .12s;line-height:1;z-index:2;
+}
+.sec-close:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.35);color:var(--red2)}
+
+.sec-body{padding:18px 22px;display:flex;flex-direction:column;gap:9px}
+
+.sec-check{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:11px 13px;border-radius:7px;
+  background:var(--surface2);border:1px solid var(--border);
+  transition:border-color .14s;
+}
+.sec-check:hover{border-color:var(--border2)}
+.sec-check-icon{
+  width:28px;height:28px;border-radius:6px;
+  background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);
+  color:var(--green2);font-weight:700;font-size:13px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:var(--mono);
+}
+.sec-check-body{flex:1;min-width:0}
+.sec-check-title{
+  font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;
+  display:flex;align-items:center;gap:6px;
+}
+.sec-check-status{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  color:var(--green2);background:rgba(16,185,129,.1);
+  border:1px solid rgba(16,185,129,.2);border-radius:3px;
+  padding:1px 6px;letter-spacing:.06em;
+}
+.sec-check-desc{font-size:11px;color:var(--muted);line-height:1.55}
+
+.sec-origin-block{
+  margin-top:4px;padding:8px 11px;border-radius:5px;
+  background:var(--bg);border:1px solid var(--border);
+  font-family:var(--mono);font-size:10px;color:var(--accent2);
+  word-break:break-all;
+}
+.sec-origin-block.pending{color:var(--amber2)}
+.sec-origin-block .sec-origin-label{color:var(--dim);margin-right:6px}
+
+.sec-footer{
+  padding:12px 22px;border-top:1px solid var(--border);
+  background:rgba(8,12,23,.5);
+  font-size:10px;color:var(--dim);font-family:var(--mono);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media(max-width:860px){
+  .viewer{grid-template-columns:1fr}.sidebar{display:none}
+  .stat-value{font-size:12px}.ai-panel{width:100vw}
+  .requestbar .btn span{display:none}
+  .btn-hire span:not(.btn-hire-icon){display:none}
+  .conn-pill{padding:4px 8px}
+  .hire-compare{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .logo{font-size:12px}
+  .conn-pill span:not(.conn-dot){display:none}
+  .conn-pill{padding:4px}
+  .topbar-meta{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ STANDALONE INSTALL GUIDE ══
+     Shown instead of everything else when this page is opened directly in
+     a browser tab (not embedded inside Manager.io as an extension iframe).
+     Detected via window.self !== window.top. ══ -->
+<div class="install-overlay" id="installOverlay">
+  <div class="install-modal">
+    <div class="install-header">
+      <div class="install-icon">🧩</div>
+      <div class="install-title">This is a Manager.io Extension</div>
+      <div class="install-sub">You're viewing this page directly in a browser — it only works when installed inside Manager.io. Follow the steps below to add it.</div>
+    </div>
+    <div class="install-body">
+      <div class="install-steps">
+        <div class="install-step">
+          <span class="install-step-num">1</span>
+          <div>
+            <div class="install-step-title">Open Manager.io</div>
+            <div class="install-step-desc">Open your business, go to the <strong>Settings</strong> tab, and select <strong>Extensions</strong> (on newer versions there's also a top-level Extensions icon in the main navigation).</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="install-step-num">2</span>
+          <div>
+            <div class="install-step-title">Click "New Extension"</div>
+            <div class="install-step-desc">This opens a form for adding a custom extension.</div>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="install-step-num">3</span>
+          <div>
+            <div class="install-step-title">Fill in the details</div>
+            <div class="install-step-desc">
+              <strong>Name:</strong> KSL Developer Toolkit (or anything recognizable)<br>
+              <strong>Endpoint:</strong> the link below — copy it exactly
+            </div>
+            <div class="install-link-row">
+              <input type="text" class="install-link-input" id="installLinkInput" readonly>
+              <button type="button" class="install-copy-btn" id="installCopyBtn">Copy Link</button>
+            </div>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="install-step-num">4</span>
+          <div>
+            <div class="install-step-title">Set the Placement</div>
+            <div class="install-step-desc">Manager will show a dropdown of valid pages — pick wherever you want this toolkit's iframe to appear, then Save. It'll load right away — no sign-up or account needed.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="install-footer">
+      Need help? <a href="https://wa.me/923458696636?text=Hi%20KSL%2C%20I%20need%20help%20installing%20the%20Developer%20Toolkit%20extension." target="_blank" rel="noopener">Message us on WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- ════ TOPBAR ════ -->
+<div class="topbar">
+  <div class="logo-wrap">
+    <div class="logo-icon">M</div>
+    <div class="logo">Prompt Builder <span>for Manager.io Extensions</span></div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-meta">
+    <span class="version-badge">v1.0</span>
+    <span class="readonly-badge">GET · Read-Only</span>
+    <span class="security-badge" onclick="openSecurityModal()" title="View active security checks">
+      <span class="security-badge-icon">🔒</span>
+      <span>Secure</span>
+    </span>
+  </div>
+  <div class="conn-pill checking" id="conn-pill" title="Checking connection to Manager.io…">
+    <span class="conn-dot"></span>
+    <span id="conn-text">Checking…</span>
+  </div>
+  <div class="topbar-right">
+    <div class="clock" id="clock">00:00:00</div>
+    <button class="btn-hire" onclick="openHireModal()" title="Need a custom extension built? Contact us.">
+      <span class="btn-hire-icon">💼</span>
+      <span>Need Custom Dev?</span>
+    </button>
+    <button class="btn-guide" onclick="openGuide()">
+      <span class="btn-guide-icon">📖</span>
+      <span>How to Use</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════ REQUEST BAR ════ -->
+<div class="requestbar">
+  <div class="method-badge">GET</div>
+  <div class="base-badge">/api4/</div>
+  <div class="endpoint-wrap">
+    <input id="path" type="text" value="customer-batch"
+      placeholder="e.g. customer-batch  or  sales-invoice-batch"
+      autocomplete="off" spellcheck="false">
+  </div>
+  <div class="pagesize-wrap">
+    <label>Rows</label>
+    <input id="pagesize" type="number" value="1" min="1" max="1000000">
+  </div>
+  <button class="btn btn-load" id="btn-load" onclick="loadData()">
+    <span class="btn-icon">▶</span><span>Load</span>
+  </button>
+  <button class="btn btn-loadall" id="btn-loadall" onclick="loadAll()">
+    <span class="btn-icon">⬇</span><span>Load All</span>
+  </button>
+  <button class="btn btn-stop" id="btn-stop" onclick="stopLoadAll()" style="display:none">
+    <span class="btn-icon">■</span><span>Stop</span>
+  </button>
+  <button class="btn btn-secondary" onclick="copyJson()">
+    <span class="btn-icon">⎘</span><span>Copy JSON</span>
+  </button>
+  <button class="btn btn-schema" onclick="setView('schema')">
+    <span class="btn-icon">◈</span><span>Schema</span>
+  </button>
+  <button class="btn btn-secondary" onclick="clearAll()">
+    <span class="btn-icon">✕</span><span>Clear</span>
+  </button>
+</div>
+
+<!-- ════ QUICK BAR ════ -->
+<div class="quickbar">
+  <span class="qsep">Lists</span>
+  <button class="qbtn q-list" onclick="quick('customer-batch')">customers</button>
+  <button class="qbtn q-list" onclick="quick('supplier-batch')">suppliers</button>
+  <button class="qbtn q-list" onclick="quick('sales-invoice-batch')">sales invoices</button>
+  <button class="qbtn q-list" onclick="quick('purchase-invoice-batch')">purchase invoices</button>
+  <button class="qbtn q-list" onclick="quick('receipt-batch')">receipts</button>
+  <button class="qbtn q-list" onclick="quick('payment-batch')">payments</button>
+  <button class="qbtn q-list" onclick="quick('inventory-item-batch')">inventory</button>
+  <button class="qbtn q-list" onclick="quick('employee-batch')">employees</button>
+  <button class="qbtn q-list" onclick="quick('bank-or-cash-account-batch')">bank accounts</button>
+  <button class="qbtn q-list" onclick="quick('journal-entry-batch')">journal entries</button>
+  <button class="qbtn q-list" onclick="quick('sales-quote-batch')">sales quotes</button>
+  <button class="qbtn q-list" onclick="quick('sales-order-batch')">sales orders</button>
+  <button class="qbtn q-list" onclick="quick('purchase-order-batch')">purchase orders</button>
+  <button class="qbtn q-list" onclick="quick('expense-claim-batch')">expense claims</button>
+  <span class="qsep">Reports</span>
+  <button class="qbtn q-report" onclick="quickReport('aged-receivables-batch')">aged receivables</button>
+  <button class="qbtn q-report" onclick="quickReport('aged-payables-batch')">aged payables</button>
+  <button class="qbtn q-report" onclick="quickReport('trial-balance-batch')">trial balance</button>
+  <button class="qbtn q-report" onclick="quickReport('profit-and-loss-statement-batch')">P&amp;L</button>
+  <button class="qbtn q-report" onclick="quickReport('balance-sheet-batch')">balance sheet</button>
+  <button class="qbtn q-report" onclick="quickReport('general-ledger-transactions-batch')">general ledger</button>
+  <span class="qsep">Meta</span>
+  <button class="qbtn q-meta" onclick="quickReport('businesses')">businesses</button>
+</div>
+
+<!-- ════ STATUS BAR ════ -->
+<div class="statusbar">
+  <div class="stat">
+    <div class="stat-label">Status</div>
+    <div class="stat-value sv-idle" id="s-status">Idle</div>
+  </div>
+  <div class="stat" style="min-width:160px;max-width:260px">
+    <div class="stat-label">Endpoint</div>
+    <div class="stat-value sv-idle" id="s-endpoint" style="font-size:11px;padding-top:2px">—</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Records</div>
+    <div class="stat-value sv-idle" id="s-items">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Fields</div>
+    <div class="stat-value sv-idle" id="s-keys">0</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Size</div>
+    <div class="stat-value sv-idle" id="s-size">0 KB</div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Time</div>
+    <div class="stat-value sv-idle" id="s-time">— ms</div>
+  </div>
+</div>
+
+<!-- ════ PROGRESS BAR ════ -->
+<div class="progressbar" id="progressbar">
+  <span class="prog-label">Loaded:</span>
+  <span class="prog-value" id="total-count">—</span>
+  <span class="prog-label" style="margin-left:10px">API Total:</span>
+  <span class="prog-value" id="api-total">—</span>
+  <div class="prog-track" id="la-track" style="display:none">
+    <div class="prog-fill" id="la-bar" style="width:0%"></div>
+  </div>
+  <span class="prog-text" id="la-text" style="display:none"></span>
+  <div class="prog-right">
+    <span class="prog-label">View:</span>
+    <button class="pager-btn" id="btn-vprev" onclick="viewPrev()" disabled>← Prev</button>
+    <span class="pager-indicator" id="vpage-indicator">1 / end</span>
+    <button class="pager-btn" id="btn-vnext" onclick="viewNext()" disabled>Next →</button>
+  </div>
+</div>
+
+<!-- ════ VIEWER ════ -->
+<div class="viewer">
+
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-head-label">JSON Paths</div>
+      <span class="path-count" id="path-count">0 paths</span>
+    </div>
+    <div class="sidebar-toolbar">
+      <button onclick="checkAllPaths(true)" title="Select all paths">✓ All</button>
+      <button onclick="checkAllPaths(false)" title="Deselect all">✕ None</button>
+      <button onclick="checkObsoletePaths(false)" title="Uncheck obsolete_ fields">– Obsolete</button>
+      <button onclick="checkOnlyValuePaths()" title="Select only primitive values">Values</button>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="path-search" placeholder="Filter paths…" oninput="filterPaths()">
+    </div>
+    <div class="path-list" id="path-list"></div>
+  </div>
+
+  <!-- ── JSON Area ── -->
+  <div class="json-area">
+    <div class="json-toolbar">
+      <div class="json-path-display" id="json-path-label">
+        No data loaded — choose an endpoint above or type one and press Enter
+      </div>
+      <div class="view-tabs">
+        <button class="view-tab active" id="vt-pretty" onclick="setView('pretty')">Pretty</button>
+        <button class="view-tab" id="vt-raw" onclick="setView('raw')">Raw</button>
+        <button class="view-tab" id="vt-schema" onclick="setView('schema')">Schema</button>
+      </div>
+    </div>
+
+    <div class="result-pager" id="result-pager">
+      <span>Showing</span>
+      <strong id="rp-range">1–20</strong>
+      <span>of</span>
+      <strong id="rp-total">0</strong>
+      <span>records</span>
+      <button class="rp-btn" id="rp-prev" onclick="rpPrev()" disabled>← Prev 20</button>
+      <button class="rp-btn" id="rp-next" onclick="rpNext()">Next 20 →</button>
+      <span style="margin-left:auto;color:var(--dim);font-size:9px;font-family:var(--mono)">Full dataset always stored in memory</span>
+    </div>
+
+    <pre id="output">Ready — select an endpoint from the quick bar above, or type one and press Enter.</pre>
+  </div>
+
+</div><!-- /viewer -->
+</div><!-- /app -->
+
+<!-- ════ FLOATING TRIGGER ════ -->
+<button class="btn-panel-trigger" id="panel-trigger" onclick="openPanel()">
+  ⎘ AI Context Buffer
+  <span class="trigger-badge" id="sel-badge">0</span>
+</button>
+
+<!-- ════ OVERLAY ════ -->
+<div class="panel-overlay" id="panel-overlay" onclick="closePanel()"></div>
+
+<!-- ════ AI PANEL ════ -->
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-panel-head">
+    <div class="ai-panel-icon">⬡</div>
+    <div>
+      <div class="ai-panel-title">AI Context Buffer</div>
+      <div class="ai-panel-sub">Build prompts · Generate extensions</div>
+    </div>
+    <button class="ai-panel-close" onclick="closePanel()">✕</button>
+  </div>
+
+  <div class="panel-tabs">
+    <button class="panel-tab active" id="tab-buf" onclick="switchTab('buf')">
+      Context Buffer
+    </button>
+    <button class="panel-tab" id="tab-builder" onclick="switchTab('builder')">
+      AI Builder
+    </button>
+  </div>
+
+  <!-- Tab: Context Buffer -->
+  <div class="panel-section active" id="ps-buf">
+    <div class="sel-items" id="sel-items">
+      <div class="sel-empty">
+        No responses saved yet.<br><br>
+        Load any endpoint, then click<br>
+        <code>+ Add to Context</code> in the toolbar.
+      </div>
+    </div>
+    <div class="sel-preview-output" id="sel-preview"></div>
+    <div class="sel-footer">
+      <div class="sel-footer-info" id="sel-footer-info">Tick responses to include them in the copy</div>
+      <button class="btn-sel-copy" id="sel-copy-btn" onclick="copySelected()" disabled>
+        ⎘ Copy Selected Context
+      </button>
+      <button class="btn-sel-clear" onclick="clearSaved()">Clear all saved</button>
+    </div>
+  </div>
+
+  <!-- Tab: AI Builder -->
+  <div class="panel-section" id="ps-builder">
+    <div class="ai-builder">
+
+      <div class="ai-notice">
+        Describe what you want to build. The generator produces a <strong>complete, copy-paste-ready prompt</strong> for Claude, ChatGPT, or Gemini — containing your schema, sample values, and full extension boilerplate.
+        <div class="notice-warn">⚠ Paid AI plans (Claude Pro, ChatGPT Plus) produce significantly better results than free tiers.</div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="ai-section">
+        <div class="ai-section-label">① What to build</div>
+        <div class="template-grid" id="template-chips">
+          <button class="chip" onclick="setTemplate('dashboard',event)">📊 Dashboard</button>
+          <button class="chip" onclick="setTemplate('table',event)">📋 Data Table</button>
+          <button class="chip" onclick="setTemplate('kpi',event)">🔢 KPI Cards</button>
+          <button class="chip" onclick="setTemplate('chart',event)">📈 Chart</button>
+          <button class="chip" onclick="setTemplate('search',event)">🔍 Search / Filter</button>
+          <button class="chip" onclick="setTemplate('form',event)">✏️ Create / Edit Form</button>
+          <button class="chip" onclick="setTemplate('export',event)">⬇️ CSV Export</button>
+          <button class="chip" onclick="setTemplate('custom',event)">✨ Custom…</button>
+        </div>
+        <input class="goal-input" id="ai-goal" type="text"
+          placeholder="e.g. Dashboard showing total invoices, total value, top 5 customers">
+      </div>
+
+      <!-- Step 2 -->
+      <div class="ai-section">
+        <div class="ai-section-label">② Endpoints to use</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">
+          Active endpoint is included automatically. Load extras &amp; add to Context to combine.
+        </div>
+        <div class="endpoint-tags" id="endpoint-list"></div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="ai-section">
+        <div class="ai-section-label">③ Key fields</div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:5px">
+          Reflects sidebar selections.
+          <span class="field-count-badge" id="field-count-badge">0 fields selected</span>
+        </div>
+        <div class="field-tags" id="field-tags"></div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="ai-section">
+        <div class="ai-section-label">④ Visual style</div>
+        <div class="template-grid">
+          <button class="chip active" id="style-dark" onclick="setStyle('dark')">🌑 Dark</button>
+          <button class="chip" id="style-light" onclick="setStyle('light')">☀️ Light</button>
+          <button class="chip" id="style-minimal" onclick="setStyle('minimal')">⬜ Minimal</button>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="ai-section">
+        <div class="ai-section-label">⑤ Options</div>
+        <div class="options-list">
+          <label class="option-row">
+            <input type="checkbox" id="ai-opt-schema" checked>
+            Include full schema map in prompt
+          </label>
+          <label class="option-row">
+            <input type="checkbox" id="ai-opt-samples" checked>
+            Include sample values
+          </label>
+          <label class="option-row">
+            <input type="checkbox" id="ai-opt-uuids">
+            Include UUID fields in schema
+          </label>
+          <label class="option-row">
+            <input type="checkbox" id="ai-opt-skeleton" checked>
+            Generate complete HTML skeleton
+          </label>
+          <label class="option-row">
+            <input type="checkbox" id="ai-opt-comments" checked>
+            Add inline code comments
+          </label>
+        </div>
+      </div>
+
+      <button class="btn-generate" id="ai-gen-btn" onclick="generatePrompt()">
+        ⚡ Generate Complete Extension Prompt
+      </button>
+
+      <div class="ai-output-wrap">
+        <div class="ai-output-meta">
+          <span class="ai-output-label" id="ai-output-label">Output will appear below</span>
+          <div class="ai-output-actions">
+            <button class="btn-ai-action" onclick="copyPrompt()">⎘ Copy</button>
+            <button class="btn-ai-action btn-ai-download" id="btn-download" onclick="downloadSkeleton()">⬇ Download .html</button>
+          </div>
+        </div>
+        <textarea class="ai-output-textarea" id="ai-output" readonly
+          placeholder="Your complete, copy-paste-ready AI prompt will appear here.
+
+It will contain:
+• Full Manager.io extension boilerplate
+• postMessage helper code
+• Your endpoint schema + sample values
+• Exact AI instructions for your feature
+
+Load an endpoint first, then click Generate."></textarea>
+      </div>
+
+      <!-- Hire-us CTA inside builder panel -->
+      <div class="ai-hire-cta">
+        <div class="ai-hire-eyebrow">💼 Prefer it done for you?</div>
+        <div class="ai-hire-title">Let us build a polished extension — tailored to your workflow.</div>
+        <div class="ai-hire-desc">
+          This prompt generator is free. But if you'd rather skip the AI iteration and get a production-ready extension designed, coded &amp; tested by experts, we offer paid custom development.
+        </div>
+        <button class="ai-hire-btn" onclick="openHireModal()">
+          <span>Get a Quote</span> <span>→</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /ai-panel -->
+
+<div class="toast" id="toast">Copied</div>
+
+<!-- ════ HOW TO USE GUIDE ════ -->
+<div class="guide-overlay" id="guide-overlay" onclick="handleGuideClick(event)">
+<div class="guide-modal" id="guide-modal">
+
+  <div class="guide-header">
+    <div class="guide-title">📖 How to Use — <span>Prompt Builder for Manager.io Extensions</span></div>
+    <button class="guide-close" onclick="closeGuide()">✕</button>
+  </div>
+
+  <div class="guide-body">
+
+    <div class="guide-intro">
+      A <strong style="color:var(--green2)">free tool</strong> to help you <strong>explore any Manager.io api4 endpoint</strong> live inside Manager, inspect its full data schema, then generate a <strong>complete AI prompt</strong> — paste it into Claude, ChatGPT, or Gemini to receive a working extension HTML file.<br><br>
+      <strong style="color:var(--amber2)">⚠ Developer tool:</strong> Designed for developers or technically minded users familiar with APIs and JSON. Follow the steps below, top to bottom.<br><br>
+      <strong style="color:var(--accent2)">💼 Not a developer?</strong> We build custom Manager.io extensions for businesses. <a href="#" onclick="closeGuide();openHireModal();return false;" style="color:var(--amber2);text-decoration:underline;font-weight:600">Contact us for professional development →</a>
+    </div>
+
+    <div class="guide-steps">
+
+      <div class="guide-step">
+        <div class="step-num sn-blue">1</div>
+        <div class="step-content">
+          <div class="step-title">Load an Endpoint</div>
+          <div class="step-desc">
+            Click any quick-access button in the bar above (Lists, Reports, Meta), or type an endpoint name manually and press Enter.<br><br>
+            Use <strong style="color:var(--accent2)">▶ Load</strong> for a quick first-page preview, or <strong style="color:var(--purple2)">⬇ Load All</strong> to fetch every record. Use Load All before building a prompt.
+          </div>
+          <div class="step-tip">⚠ Manager.io returns max 50 records per API call. Load All follows every page automatically so you never miss fields.</div>
+          <div class="guide-pills">
+            <span class="gp gp-blue">customer-batch</span>
+            <span class="gp gp-blue">sales-invoice-batch</span>
+            <span class="gp gp-blue">inventory-item-batch</span>
+            <span class="gp gp-amber">aged-receivables-batch</span>
+            <span class="gp gp-amber">balance-sheet-batch</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num sn-green">2</div>
+        <div class="step-content">
+          <div class="step-title">Inspect Fields in the Sidebar</div>
+          <div class="step-desc">
+            The left sidebar fills with every field found in the response — each with its dot-notation path, data type badge, and a sample value.<br><br>
+            Tick the fields you want in your extension. Use the toolbar shortcuts:
+          </div>
+          <div class="guide-pills">
+            <span class="gp gp-green">✓ All — select everything</span>
+            <span class="gp gp-green">Values — skip object/array nodes</span>
+            <span class="gp gp-green">– Obsolete — hide obsolete_ fields</span>
+          </div>
+          <div class="step-tip">💡 Click any field name to copy its dot-notation path to clipboard.</div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num sn-purple">3</div>
+        <div class="step-content">
+          <div class="step-title">Open the AI Context Buffer</div>
+          <div class="step-desc">
+            Click the floating <strong style="color:var(--accent2)">⎘ AI Context Buffer</strong> button at the bottom-right.<br><br>
+            • <strong style="color:var(--text)">Context Buffer tab</strong> — save endpoint responses so you can combine multiple endpoints in one prompt.<br>
+            • <strong style="color:var(--text)">AI Builder tab</strong> — configure and generate the prompt here.
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num sn-amber">4</div>
+        <div class="step-content">
+          <div class="step-title">Configure the AI Builder</div>
+          <div class="step-desc">
+            <strong style="color:var(--text)">① What to build</strong> — pick a template or write your own goal.<br>
+            <strong style="color:var(--text)">② Endpoints</strong> — active endpoint is included automatically.<br>
+            <strong style="color:var(--text)">③ Fields</strong> — mirrors sidebar selections. Adjust anytime.<br>
+            <strong style="color:var(--text)">④ Style</strong> — Dark, Light, or Minimal theme.<br>
+            <strong style="color:var(--text)">⑤ Options</strong> — keep Schema and HTML Skeleton checked for best results.
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num sn-green">5</div>
+        <div class="step-content">
+          <div class="step-title">Generate → Copy → Paste into AI → Install</div>
+          <div class="step-desc">
+            Click <strong style="color:var(--purple2)">⚡ Generate Complete Extension Prompt</strong>.<br><br>
+            Copy the output and paste it into Claude, ChatGPT, or Gemini.<br>
+            The AI returns a complete <code>.html</code> file. Install it via <code>Settings → Extensions → Add Custom Extension</code>.
+          </div>
+          <div class="step-tip">✅ A good prompt is typically 3,000–8,000 characters. The label above the output area shows the exact count.</div>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num sn-blue">6</div>
+        <div class="step-content">
+          <div class="step-title">Deploy on GitHub Pages (free hosting)</div>
+          <div class="step-desc">
+            Host your extension HTML on <strong style="color:var(--accent2)">GitHub Pages</strong> for a free, permanent public URL.<br><br>
+            <strong>①</strong> Create a public GitHub repo → <strong>②</strong> Upload your file as <code>index.html</code> → <strong>③</strong> Enable Pages under Settings → Pages → Deploy from branch → main → <strong>④</strong> Get your URL → <strong>⑤</strong> Paste into Manager <code>Settings → Extensions</code>.
+          </div>
+          <div class="guide-pills">
+            <span class="gp gp-blue">github.com — free</span>
+            <span class="gp gp-green">netlify.com — drag &amp; drop</span>
+            <span class="gp gp-green">vercel.com — instant deploy</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /guide-steps -->
+
+    <div class="guide-warning">
+      <div class="guide-warning-title">⚠ Important Disclaimer</div>
+      <div class="guide-warning-body">
+        <div><strong>🛠 Developer-focused tool.</strong> Designed for users who understand APIs, JSON, and basic web concepts.</div>
+        <div><strong class="warn-note">🤖 AI can and does make mistakes.</strong> The generated prompt is a best-effort starting point. Always review and test generated code before using it with real business data.</div>
+        <div><strong>📉 Output quality varies by model.</strong> <span style="color:var(--accent2)">Paid plans</span> (Claude Pro, ChatGPT Plus) consistently produce better, more complete code than free tiers.</div>
+        <div><strong>🔁 Iteration is normal.</strong> Complex extensions often need 2–3 rounds of refinement. Paste the output back with follow-up instructions.</div>
+        <div style="font-size:10px;color:var(--dim);border-top:1px solid var(--border);padding-top:7px;margin-top:2px">
+          Provided as-is. Use generated code at your own discretion. Keep a backup of your Manager.io data before installing custom extensions.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /guide-body -->
+
+  <div class="guide-footer">
+    <span class="guide-footer-note">Prompt Builder for Manager.io Extensions · v1.0 · GET (Read-Only)</span>
+    <button class="btn-guide-close" onclick="closeGuide()">✓ Got it, close</button>
+  </div>
+
+</div><!-- /guide-modal -->
+</div><!-- /guide-overlay -->
+
+<!-- ════ HIRE-US MODAL ════ -->
+<div class="hire-overlay" id="hire-overlay" onclick="handleHireClick(event)">
+<div class="hire-modal" id="hire-modal">
+
+  <div class="hire-header">
+    <button class="hire-close" onclick="closeHireModal()">✕</button>
+    <span class="hire-eyebrow">⚡ Professional Services</span>
+    <div class="hire-title">Need a <span>Custom Extension</span> Built?</div>
+    <div class="hire-subtitle">
+      This tool is <strong style="color:var(--green2)">100% free</strong> for self-service development. If you'd rather have an expert build a polished, production-ready Manager.io extension tailored to your business — we're here to help.
+    </div>
+  </div>
+
+  <div class="hire-body">
+
+    <div class="hire-compare">
+      <div class="hire-col free">
+        <div class="hire-col-label">✓ Free Forever</div>
+        <div class="hire-col-title">DIY with this tool</div>
+        <div class="hire-col-desc">Generate prompts, use any AI, build extensions yourself. Ideal for developers &amp; technical users.</div>
+      </div>
+      <div class="hire-col pro">
+        <div class="hire-col-label">★ Done For You</div>
+        <div class="hire-col-title">Custom development</div>
+        <div class="hire-col-desc">We design, build, test &amp; deploy a bespoke extension for your specific workflow.</div>
+      </div>
+    </div>
+
+    <div class="hire-services">
+      <div class="hire-services-label">What we can build for you</div>
+      <div class="hire-service-list">
+        <div class="hire-service-item"><span class="hire-service-check">✓</span><span>Custom dashboards, reports &amp; KPI views tailored to your business metrics</span></div>
+        <div class="hire-service-item"><span class="hire-service-check">✓</span><span>Branded invoice, quote &amp; document layouts that match your identity</span></div>
+        <div class="hire-service-item"><span class="hire-service-check">✓</span><span>Multi-endpoint data tools (cross-report analysis, reconciliation, audits)</span></div>
+        <div class="hire-service-item"><span class="hire-service-check">✓</span><span>Industry-specific workflows — retail, construction, services, manufacturing</span></div>
+        <div class="hire-service-item"><span class="hire-service-check">✓</span><span>Ongoing support, maintenance &amp; feature updates</span></div>
+      </div>
+    </div>
+
+    <div class="hire-contact">
+      <div class="hire-contact-label">🌐 Learn more &amp; get in touch</div>
+      <div class="hire-contact-text">
+        Visit our website to see our work, explore our services, and reach out through our contact form. We typically reply within one business day — no commitment.
+      </div>
+      <div class="hire-contact-links">
+        <a href="https://ksl1816.github.io/ksl-solution-site/" target="_blank" rel="noopener" class="hire-link primary">
+          🌐 Visit Our Website
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="hire-footer">
+    This tool is free to use. Custom development is a paid service.
+  </div>
+
+</div><!-- /hire-modal -->
+</div><!-- /hire-overlay -->
+
+<!-- ════ SECURITY MODAL ════ -->
+<div class="sec-overlay" id="sec-overlay" onclick="handleSecClick(event)">
+<div class="sec-modal" id="sec-modal">
+
+  <div class="sec-header">
+    <button class="sec-close" onclick="closeSecurityModal()">✕</button>
+    <span class="sec-eyebrow">🔒 Security Layer</span>
+    <div class="sec-title">Active Protections</div>
+    <div class="sec-subtitle">
+      This tool runs with multiple defense layers to keep your Manager.io data safe. Every check is enforced at runtime.
+    </div>
+  </div>
+
+  <div class="sec-body">
+
+    <div class="sec-check">
+      <div class="sec-check-icon">✓</div>
+      <div class="sec-check-body">
+        <div class="sec-check-title">Origin-pinned postMessage <span class="sec-check-status">Active</span></div>
+        <div class="sec-check-desc">
+          After the first successful response, the host origin is locked. Any message from a different origin is silently rejected — a malicious iframe can't spoof API responses.
+        </div>
+        <div class="sec-origin-block pending" id="sec-origin-block">
+          <span class="sec-origin-label">Locked origin:</span>
+          <span id="sec-origin-value">(not yet established — load an endpoint)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-check">
+      <div class="sec-check-icon">✓</div>
+      <div class="sec-check-body">
+        <div class="sec-check-title">Read-only API access <span class="sec-check-status">GET only</span></div>
+        <div class="sec-check-desc">
+          Only HTTP GET requests are ever made. No writes, no mutations — nothing you do here can change, create, or delete data in Manager.io.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-check">
+      <div class="sec-check-icon">✓</div>
+      <div class="sec-check-body">
+        <div class="sec-check-title">Endpoint input validation <span class="sec-check-status">Enforced</span></div>
+        <div class="sec-check-desc">
+          Endpoint paths are checked against a strict allow-list. Script injections, dangerous schemes (<code style="font-family:var(--mono);color:var(--red2)">javascript:</code>, <code style="font-family:var(--mono);color:var(--red2)">data:</code>), and malformed paths are blocked before any request is sent.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-check">
+      <div class="sec-check-icon">✓</div>
+      <div class="sec-check-body">
+        <div class="sec-check-title">Content Security Policy <span class="sec-check-status">Locked</span></div>
+        <div class="sec-check-desc">
+          A strict CSP header blocks all external network calls, remote scripts, and unexpected resource loads. The page only talks to Manager.io through its sandboxed postMessage bridge.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-check">
+      <div class="sec-check-icon">✓</div>
+      <div class="sec-check-body">
+        <div class="sec-check-title">XSS-safe rendering <span class="sec-check-status">Escaped</span></div>
+        <div class="sec-check-desc">
+          All JSON field values and paths shown in the sidebar are HTML-escaped before rendering, so hostile data inside any record can't execute code in the page.
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-check">
+      <div class="sec-check-icon">✓</div>
+      <div class="sec-check-body">
+        <div class="sec-check-title">Zero external tracking <span class="sec-check-status">No analytics</span></div>
+        <div class="sec-check-desc">
+          No telemetry, no analytics, no cookies, no fingerprinting. Your data never leaves the Manager.io iframe boundary. The only outbound request is to Google Fonts (style only).
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sec-footer">
+    <span>All checks run client-side, in your browser</span>
+    <span>v1.0</span>
+  </div>
+
+</div><!-- /sec-modal -->
+</div><!-- /sec-overlay -->
+
+<script>
+/* ════════════════════════════════════════════════
+   STANDALONE DETECTION — must run before anything else
+   If this page isn't embedded inside Manager.io, show the install guide
+   and stop — the rest of this file only works via postMessage to a
+   Manager.io parent window.
+════════════════════════════════════════════════ */
+const isEmbeddedInManager = window.self !== window.top;
+if (!isEmbeddedInManager) {
+  const installOverlay = document.getElementById('installOverlay');
+  const installLinkInput = document.getElementById('installLinkInput');
+  const installCopyBtn = document.getElementById('installCopyBtn');
+  if (installOverlay) installOverlay.style.display = 'flex';
+  if (installLinkInput) installLinkInput.value = window.location.href.split('?')[0].split('#')[0];
+  if (installCopyBtn) {
+    installCopyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(installLinkInput.value).then(() => {
+        const original = installCopyBtn.textContent;
+        installCopyBtn.textContent = 'Copied!';
+        installCopyBtn.classList.add('copied');
+        setTimeout(() => { installCopyBtn.textContent = original; installCopyBtn.classList.remove('copied'); }, 1500);
+      }).catch(() => { installLinkInput.select(); });
+    });
+  }
+}
+
+/* ════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════ */
+let latestJson      = null;
+let allRecords      = [];
+let allPaths        = [];
+let currentView     = 'pretty';
+let savedItems      = [];
+let currentEndpoint = '';
+let loadAllStop     = false;
+
+const RP_SIZE = 20;
+let rpPage    = 0;
+let currentNext = null;
+let currentPage = 1;
+let pageStack   = [];
+
+/* ════════════════════════════════════════════════
+   CLOCK
+════════════════════════════════════════════════ */
+(function tick(){
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
+  setTimeout(tick, 1000);
+})();
+
+/* ════════════════════════════════════════════════
+   CLIPBOARD
+════════════════════════════════════════════════ */
+function robustCopy(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(text).then(()=>true).catch(()=>execCopy(text));
+  }
+  return Promise.resolve(execCopy(text));
+}
+function execCopy(text){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+
+/* ════════════════════════════════════════════════
+   SECURITY — origin pinning + input validation
+   These primitives are used by every API call and
+   every piece of rendered data.
+════════════════════════════════════════════════ */
+
+// Locked origin of the Manager.io host. Starts null and gets pinned on
+// the first successful response. After that, any message from a
+// different origin is silently dropped.
+let MANAGER_ORIGIN = null;
+
+function updateOriginDisplay(){
+  const block = document.getElementById('sec-origin-block');
+  const val   = document.getElementById('sec-origin-value');
+  if(!block || !val) return;
+  if(MANAGER_ORIGIN){
+    block.classList.remove('pending');
+    val.textContent = MANAGER_ORIGIN;
+  }
+}
+
+// HTML-escape any value before it goes into innerHTML / attributes.
+function escHTML(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+
+// Escape a value for single-quoted JS string context (used in inline onclick).
+function escJS(s){
+  return String(s ?? '')
+    .replace(/\\/g,'\\\\')
+    .replace(/'/g,"\\'")
+    .replace(/\r?\n/g,'\\n');
+}
+
+// Validate an endpoint path. Throws if it looks hostile.
+function sanitizeEndpoint(raw){
+  let s = String(raw || '').trim();
+  if(!s) throw new Error('Endpoint is empty.');
+  if(s.length > 500) throw new Error('Endpoint too long (over 500 chars).');
+
+  // Strip leading slashes and optional api4/ prefix (matches existing loader behavior).
+  s = s.replace(/^\/+/, '').replace(/^api4\//,'');
+
+  // Reject dangerous URL schemes outright.
+  if(/^(javascript|data|vbscript|file|blob):/i.test(s)){
+    throw new Error('Blocked scheme in endpoint.');
+  }
+  // Allow only URL-safe characters. This blocks < > { } ( ) [ ] " ' ` ; spaces newlines etc.
+  if(!/^[A-Za-z0-9._\-\/?=&%+:,]+$/.test(s)){
+    throw new Error('Endpoint contains disallowed characters. Allowed: letters, digits, - _ . / ? = & % + : ,');
+  }
+  return s;
+}
+
+/* ════════════════════════════════════════════════
+   postMessage — DO NOT MODIFY THE CONTRACT
+   This is the ONLY way to call the Manager.io API
+   from inside an extension iframe.
+   Hardened with origin pinning + source check.
+════════════════════════════════════════════════ */
+function pmr(msg){
+  return new Promise((resolve, reject)=>{
+    const rid   = crypto.randomUUID();
+    const timer = setTimeout(()=>{
+      window.removeEventListener('message', h);
+      reject(new Error('15 s timeout — is this running inside Manager.io?'));
+    }, 15000);
+    function h(e){
+      // SECURITY: origin pinning — once we've talked to Manager.io once,
+      // reject messages from any other origin.
+      if(MANAGER_ORIGIN && e.origin !== MANAGER_ORIGIN) return;
+      // SECURITY: source must be the parent window (the Manager.io host).
+      if(e.source !== window.parent) return;
+      if(e.data?.type?.endsWith('-response') && e.data?.requestId === rid){
+        clearTimeout(timer);
+        window.removeEventListener('message', h);
+        // Pin the origin on first successful response.
+        if(!MANAGER_ORIGIN && e.origin){
+          MANAGER_ORIGIN = e.origin;
+          updateOriginDisplay();
+        }
+        resolve(e.data.body);
+      }
+    }
+    window.addEventListener('message', h);
+    window.parent.postMessage({...msg, requestId: rid}, '*');
+  });
+}
+
+/* ════════════════════════════════════════════════
+   MANAGER.IO CONNECTION CHECK
+   Pings the host on load to confirm we're running
+   inside a Manager.io iframe (not a standalone tab).
+════════════════════════════════════════════════ */
+function setConnectionState(state, text, tooltip){
+  const pill = document.getElementById('conn-pill');
+  const txt  = document.getElementById('conn-text');
+  pill.classList.remove('checking','connected','disconnected');
+  pill.classList.add(state);
+  txt.textContent = text;
+  if(tooltip) pill.title = tooltip;
+}
+
+async function checkManagerConnection(){
+  // If not embedded in any frame, we clearly aren't inside Manager.
+  if(window.parent === window || window.top === window){
+    setConnectionState(
+      'disconnected',
+      'Standalone Mode',
+      'Open this page inside Manager.io → Settings → Extensions to connect to live business data.'
+    );
+    return;
+  }
+
+  // Probe the host with a cheap request. If Manager.io responds, we're in.
+  try{
+    const probe = new Promise((resolve, reject)=>{
+      const rid = crypto.randomUUID();
+      const timer = setTimeout(()=>{
+        window.removeEventListener('message', h);
+        reject(new Error('timeout'));
+      }, 3500);
+      function h(e){
+        // Same security checks as pmr()
+        if(MANAGER_ORIGIN && e.origin !== MANAGER_ORIGIN) return;
+        if(e.source !== window.parent) return;
+        if(e.data?.type?.endsWith('-response') && e.data?.requestId === rid){
+          clearTimeout(timer);
+          window.removeEventListener('message', h);
+          if(!MANAGER_ORIGIN && e.origin){
+            MANAGER_ORIGIN = e.origin;
+            updateOriginDisplay();
+          }
+          resolve(e.data.body);
+        }
+      }
+      window.addEventListener('message', h);
+      window.parent.postMessage({
+        type:'api-request', method:'GET',
+        path:'/api4/businesses?PageSize=1',
+        requestId: rid
+      }, '*');
+    });
+
+    await probe;
+    setConnectionState(
+      'connected',
+      'Connected to Manager.io',
+      'Live API access confirmed — you can load endpoints below.'
+    );
+  }catch(e){
+    setConnectionState(
+      'disconnected',
+      'Not Connected',
+      'Running inside an iframe, but Manager.io did not respond. Ensure the extension is installed correctly.'
+    );
+  }
+}
+
+/* Run the connection check shortly after load so the host has time to initialise */
+setTimeout(checkManagerConnection, 600);
+
+/* ════════════════════════════════════════════════
+   HIRE-US MODAL
+════════════════════════════════════════════════ */
+function openHireModal(){
+  document.getElementById('hire-overlay').classList.add('open');
+  document.getElementById('hire-modal').scrollTop = 0;
+}
+function closeHireModal(){
+  document.getElementById('hire-overlay').classList.remove('open');
+}
+function handleHireClick(e){
+  if(e.target === document.getElementById('hire-overlay')) closeHireModal();
+}
+
+/* ════════════════════════════════════════════════
+   SECURITY MODAL
+════════════════════════════════════════════════ */
+function openSecurityModal(){
+  updateOriginDisplay();   // refresh locked-origin display each time
+  document.getElementById('sec-overlay').classList.add('open');
+  document.getElementById('sec-modal').scrollTop = 0;
+}
+function closeSecurityModal(){
+  document.getElementById('sec-overlay').classList.remove('open');
+}
+function handleSecClick(e){
+  if(e.target === document.getElementById('sec-overlay')) closeSecurityModal();
+}
+
+/* ════════════════════════════════════════════════
+   SYNTAX HIGHLIGHT
+════════════════════════════════════════════════ */
+function hl(json){
+  const s = JSON.stringify(json, null, 2)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?|[{}\[\],])/g, m=>{
+    if(/^[{}\[\],]/.test(m)) return `<span class="jp">${m}</span>`;
+    if(/^"/.test(m))         return /:$/.test(m) ? `<span class="jk">${m}</span>` : `<span class="js">${m}</span>`;
+    if(/true|false/.test(m)) return `<span class="jb">${m}</span>`;
+    if(/null/.test(m))       return `<span class="jl">${m}</span>`;
+    return `<span class="jn">${m}</span>`;
+  });
+}
+
+/* ════════════════════════════════════════════════
+   SCHEMA BUILDER
+════════════════════════════════════════════════ */
+function buildSchema(v, d=0){
+  if(v === null)       return 'null';
+  if(Array.isArray(v)) return v.length
+    ? `Array(${v.length}) [\n${' '.repeat((d+1)*2)}${buildSchema(v[0],d+1)}\n${' '.repeat(d*2)}]`
+    : 'Array(0) []';
+  if(typeof v === 'object'){
+    const lines = Object.keys(v).map(k => `${' '.repeat((d+1)*2)}"${k}": ${buildSchema(v[k],d+1)}`);
+    return `{\n${lines.join(',\n')}\n${' '.repeat(d*2)}}`;
+  }
+  return `<${typeof v}>`;
+}
+
+/* ════════════════════════════════════════════════
+   PATH EXTRACTION & TYPE TAGGING
+════════════════════════════════════════════════ */
+function typeTag(v){
+  if(v === null)       return { type:'null', sample:'null', friendlyType:'Null' };
+  if(Array.isArray(v)) return { type:'arr',  sample:`arr(${v.length})`, friendlyType:'Array' };
+  if(typeof v === 'object') return { type:'obj', sample:'{}', friendlyType:'Object' };
+  if(typeof v === 'boolean') return { type:'bool', sample:String(v), friendlyType:'Boolean' };
+  if(typeof v === 'number')  return { type:'num',  sample:String(v), friendlyType:'Number' };
+  const s = String(v);
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  return { type:'str', sample: s.length>22 ? s.slice(0,22)+'…' : s, friendlyType: isUUID ? 'UUID' : 'String', isUUID };
+}
+
+function extractPaths(obj){
+  const list = []; const seen = new Set();
+  function walk(v, path){
+    if(v && typeof v === 'object' && list.length < 1000){
+      for(const k of Object.keys(v).slice(0,200)){
+        const next = path ? path+'.'+k : k;
+        if(seen.has(next)) continue;
+        seen.add(next);
+        const tag = typeTag(v[k]);
+        list.push({ path:next, ...tag, checked:true });
+        walk(v[k], next);
+      }
+    }
+  }
+  walk(obj, '');
+  return list;
+}
+
+function renderPaths(list){
+  const box = document.getElementById('path-list');
+  box.innerHTML = '';
+  document.getElementById('path-count').textContent = list.length + ' paths';
+  list.slice(0, 600).forEach(({ path, type, sample, checked })=>{
+    const origIdx = allPaths.findIndex(p => p.path === path);
+    const d = document.createElement('div');
+    d.className = 'path-item';
+    // SECURITY: escape every value before it hits innerHTML or attributes.
+    const ePath   = escHTML(path);
+    const eSample = escHTML(sample);
+    const eType   = escHTML(type);
+    const jsPath  = escJS(path);   // separately escaped for the JS string in onclick
+    d.innerHTML = `
+      <input type="checkbox" ${checked?'checked':''} onchange="togglePath(${origIdx},this)" onclick="event.stopPropagation()">
+      <span class="path-text" onclick="copyPath('${jsPath}')" title="Click to copy: ${ePath}">${ePath}</span>
+      <span class="pt pt-${eType}">${eType}</span>
+      <span class="path-val" title="${eSample}">${eSample}</span>`;
+    box.appendChild(d);
+  });
+}
+
+function togglePath(idx, cb){
+  if(idx < 0 || idx >= allPaths.length) return;
+  allPaths[idx].checked = cb.checked;
+}
+
+function filterPaths(){
+  const q = document.getElementById('path-search').value.toLowerCase();
+  renderPaths(q ? allPaths.filter(p => p.path.toLowerCase().includes(q)) : allPaths);
+}
+
+function checkAllPaths(state){
+  allPaths.forEach(p => p.checked = state);
+  filterPaths();
+}
+function checkObsoletePaths(state){
+  allPaths.forEach(p => { if(p.path.includes('obsolete')) p.checked = state; });
+  filterPaths();
+}
+function checkOnlyValuePaths(){
+  allPaths.forEach(p => { p.checked = p.type !== 'obj' && p.type !== 'arr'; });
+  filterPaths();
+}
+
+function copyPath(path){
+  robustCopy(path).then(()=> showToast('Copied: ' + path.split('.').pop()));
+}
+
+/* ════════════════════════════════════════════════
+   RESPONSE HELPERS
+════════════════════════════════════════════════ */
+function countKeys(obj){
+  let n = 0;
+  function w(v){ if(v && typeof v === 'object'){ for(const k in v){ n++; w(v[k]); } } }
+  w(obj); return n;
+}
+
+function getItems(d){
+  if(Array.isArray(d)) return d;
+  if(d && typeof d === 'object'){
+    if(Array.isArray(d.items)) return d.items;
+    if(Array.isArray(d.data))  return d.data;
+    // Single-record response (e.g. GET /api4/sales-invoice?Key=UUID)
+    if(d.key || d.id) return [d];
+    // Fallback: first array property
+    for(const k of Object.keys(d)) if(Array.isArray(d[k])) return d[k];
+  }
+  return [];
+}
+
+function extractTotal(d){
+  if(!d || typeof d !== 'object') return null;
+  for(const k of ['totalCount','total','count','Total'])
+    if(typeof d[k] === 'number') return d[k];
+  if(d._metadata && typeof d._metadata.totalCount === 'number') return d._metadata.totalCount;
+  return null;
+}
+
+function extractNext(d){
+  if(!d || typeof d !== 'object') return null;
+  // api4 token-based pagination
+  if(d.next_page_token) return { token: d.next_page_token };
+  if(d.nextPageToken)   return { token: d.nextPageToken };
+  // HAL-style link
+  if(d._links?.next?.href) return { href: d._links.next.href };
+  return null;
+}
+
+function setStat(id, val, cls){
+  const el = document.getElementById(id);
+  if(cls) el.className = 'stat-value ' + cls;
+  el.textContent = val;
+}
+
+/* ════════════════════════════════════════════════
+   UI PAGER (front-end slicing of allRecords)
+════════════════════════════════════════════════ */
+function updateResultPager(){
+  const total = allRecords.length;
+  const pages = Math.ceil(total / RP_SIZE) || 1;
+  rpPage = Math.min(rpPage, pages-1);
+  const pagerEl = document.getElementById('result-pager');
+  if(total > RP_SIZE){
+    pagerEl.classList.add('visible');
+    const from = rpPage * RP_SIZE + 1;
+    const to   = Math.min((rpPage+1) * RP_SIZE, total);
+    document.getElementById('rp-range').textContent = from + '–' + to;
+    document.getElementById('rp-total').textContent = total.toLocaleString();
+    document.getElementById('rp-prev').disabled = rpPage === 0;
+    document.getElementById('rp-next').disabled = rpPage >= pages-1;
+  } else {
+    pagerEl.classList.remove('visible');
+  }
+}
+
+function rpPrev(){ if(rpPage>0){ rpPage--; renderView(); updateResultPager(); } }
+function rpNext(){
+  const pages = Math.ceil(allRecords.length / RP_SIZE);
+  if(rpPage < pages-1){ rpPage++; renderView(); updateResultPager(); }
+}
+
+function viewPrev(){}
+function viewNext(){}
+
+/* ════════════════════════════════════════════════
+   VIEW RENDERING
+════════════════════════════════════════════════ */
+function setView(v){
+  currentView = v;
+  ['pretty','raw','schema'].forEach(n =>
+    document.getElementById('vt-'+n).classList.toggle('active', n===v)
+  );
+  if(latestJson) renderView();
+}
+
+function renderView(){
+  const pre = document.getElementById('output');
+  let data = latestJson;
+  if(allRecords.length > RP_SIZE){
+    const slice = allRecords.slice(rpPage*RP_SIZE, (rpPage+1)*RP_SIZE);
+    data = {
+      _viewNote: `Showing records ${rpPage*RP_SIZE+1}–${Math.min((rpPage+1)*RP_SIZE, allRecords.length)} of ${allRecords.length} (full dataset in memory)`,
+      items: slice
+    };
+  }
+  if(currentView === 'pretty')      pre.innerHTML = hl(data);
+  else if(currentView === 'raw')    pre.textContent = JSON.stringify(data);
+  else                              pre.textContent = buildSchema(data);
+}
+
+/* ════════════════════════════════════════════════
+   DATA PROCESSING (after any successful load)
+════════════════════════════════════════════════ */
+function processData(data, elapsed, endpoint){
+  latestJson = data;
+  const items = getItems(data);
+
+  // A successful response is definitive proof we're talking to Manager.io
+  const pill = document.getElementById('conn-pill');
+  if(pill && !pill.classList.contains('connected')){
+    setConnectionState('connected', 'Connected to Manager.io',
+      'Live API access confirmed — you can load endpoints below.');
+  }
+
+  if(items.length){
+    allRecords.push(...items);
+  } else {
+    allRecords = []; // report / single object
+  }
+
+  allPaths = extractPaths(data);
+  updateResultPager();
+  renderView();
+  renderPaths(allPaths);
+
+  const size     = (JSON.stringify(data).length / 1024).toFixed(1);
+  const apiTotal = extractTotal(data);
+  currentNext    = extractNext(data);
+
+  setStat('s-status',   '200 OK',              'sv-ok');
+  setStat('s-items',    allRecords.length || 1);
+  setStat('s-keys',     countKeys(data));
+  setStat('s-size',     size + ' KB');
+  if(elapsed !== null) setStat('s-time', elapsed + ' ms');
+
+  // Progress bar
+  const pb = document.getElementById('progressbar');
+  pb.classList.add('visible');
+  document.getElementById('total-count').textContent =
+    (allRecords.length || 1).toLocaleString() + ' loaded';
+  document.getElementById('api-total').textContent =
+    apiTotal !== null ? apiTotal.toLocaleString() + ' total' : 'unknown';
+  document.getElementById('vpage-indicator').textContent =
+    currentPage + ' / ' + (currentNext ? '…' : 'end');
+  document.getElementById('btn-vprev').disabled = currentPage <= 1;
+  document.getElementById('btn-vnext').disabled = !currentNext;
+
+  injectSaveButton(endpoint, data);
+}
+
+/* ════════════════════════════════════════════════
+   LOAD — SINGLE PAGE
+════════════════════════════════════════════════ */
+async function loadData(){
+  let raw = document.getElementById('path').value.trim();
+  if(!raw) return;
+
+  // SECURITY: validate endpoint before any network call
+  try{ raw = sanitizeEndpoint(raw); }
+  catch(e){
+    setStat('s-status', 'Blocked', 'sv-err');
+    document.getElementById('output').textContent = '🔒 ' + e.message;
+    showToast(e.message, true);
+    return;
+  }
+
+  const ps = parseInt(document.getElementById('pagesize').value) || 50;
+
+  let fullPath = '/api4/' + raw;
+  if(!fullPath.includes('?')) fullPath += '?PageSize=' + ps;
+  else if(!fullPath.includes('PageSize')) fullPath += '&PageSize=' + ps;
+
+  currentEndpoint = raw.split('?')[0];
+  allRecords = []; rpPage = 0; currentPage = 1; pageStack = []; currentNext = null;
+
+  setStat('s-endpoint', raw, '');
+  document.getElementById('json-path-label').textContent = 'GET ' + fullPath;
+  setStat('s-status', 'Loading…', 'sv-load');
+
+  const t0 = performance.now();
+  try{
+    const data = await pmr({ type:'api-request', method:'GET', path:fullPath });
+    processData(data, Math.round(performance.now()-t0), currentEndpoint);
+  }catch(e){
+    setStat('s-status', 'Error', 'sv-err');
+    document.getElementById('output').textContent =
+      '⚠ Error: ' + e.message +
+      '\n\nEnsure this is running inside Manager.io as an extension.\n' +
+      'For single-record endpoints, include ?Key=<uuid> in the path.';
+  }
+}
+
+/* ════════════════════════════════════════════════
+   LOAD ALL — paginated fetch loop
+   Manager.io returns ≤50 records per call.
+   This loop follows next_page_token until all
+   records are loaded. DO NOT simplify.
+════════════════════════════════════════════════ */
+async function loadAll(){
+  let raw = document.getElementById('path').value.trim();
+  if(!raw) return;
+
+  // SECURITY: validate endpoint before any network call
+  try{ raw = sanitizeEndpoint(raw); }
+  catch(e){
+    setStat('s-status', 'Blocked', 'sv-err');
+    document.getElementById('output').textContent = '🔒 ' + e.message;
+    showToast(e.message, true);
+    return;
+  }
+
+  const ps = parseInt(document.getElementById('pagesize').value) || 50;
+
+  let startPath = '/api4/' + raw;
+  if(!startPath.includes('?')) startPath += '?PageSize=' + ps;
+  else if(!startPath.includes('PageSize')) startPath += '&PageSize=' + ps;
+
+  currentEndpoint = raw.split('?')[0];
+  allRecords = []; rpPage = 0; currentPage = 1; pageStack = []; currentNext = null;
+  setStat('s-endpoint', raw, '');
+
+  // UI: switch to stop mode
+  document.getElementById('btn-load').style.display    = 'none';
+  document.getElementById('btn-loadall').style.display = 'none';
+  document.getElementById('btn-stop').style.display    = '';
+  document.getElementById('la-track').style.display    = '';
+  document.getElementById('la-text').style.display     = '';
+  document.getElementById('progressbar').classList.add('visible');
+  setStat('s-status', 'Fetching…', 'sv-load');
+
+  loadAllStop = false;
+  let path = startPath;
+  let pageNum = 0;
+  const t0 = performance.now();
+
+  while(path && !loadAllStop){
+    pageNum++;
+    document.getElementById('la-text').textContent =
+      `page ${pageNum} · ${allRecords.length.toLocaleString()} records…`;
+
+    try{
+      const data = await pmr({ type:'api-request', method:'GET', path });
+      const items = getItems(data);
+      if(items.length) allRecords.push(...items);
+      latestJson = data;
+
+      // Progress bar estimate
+      const apiTotal = extractTotal(data);
+      if(apiTotal && apiTotal > 0){
+        const pct = Math.min(100, Math.round(allRecords.length / apiTotal * 100));
+        document.getElementById('la-bar').style.width = pct + '%';
+        document.getElementById('api-total').textContent = apiTotal.toLocaleString() + ' total';
+      }
+      document.getElementById('total-count').textContent =
+        allRecords.length.toLocaleString() + ' loaded';
+
+      // Next page
+      const nxt = extractNext(data);
+      if(!nxt || items.length === 0) break;
+
+      // Build next URL
+      if(nxt.href){
+        path = nxt.href;
+      } else if(nxt.token){
+        const base = startPath.split('&next_page_token')[0];
+        path = base + '&next_page_token=' + encodeURIComponent(nxt.token);
+      } else {
+        break;
+      }
+
+    }catch(e){
+      setStat('s-status', 'Error', 'sv-err');
+      document.getElementById('output').textContent =
+        '⚠ Load All error on page ' + pageNum + ': ' + e.message;
+      break;
+    }
+  }
+
+  const elapsed = Math.round(performance.now() - t0);
+
+  // Reset UI
+  document.getElementById('btn-load').style.display    = '';
+  document.getElementById('btn-loadall').style.display = '';
+  document.getElementById('btn-stop').style.display    = 'none';
+  document.getElementById('la-track').style.display    = 'none';
+  document.getElementById('la-text').style.display     = 'none';
+  document.getElementById('la-bar').style.width        = '0%';
+
+  // Synthetic combined response for display
+  const combined = {
+    _summary: {
+      endpoint:     currentEndpoint,
+      totalLoaded:  allRecords.length,
+      pages:        pageNum,
+      elapsedMs:    elapsed,
+      stoppedEarly: loadAllStop
+    },
+    items: allRecords
+  };
+
+  allPaths = extractPaths(combined);
+  renderView(); updateResultPager(); renderPaths(allPaths);
+
+  setStat('s-status', loadAllStop ? 'Stopped' : 'Complete', 'sv-ok');
+  setStat('s-items',  allRecords.length);
+  setStat('s-keys',   countKeys(combined));
+  setStat('s-size',   (JSON.stringify(combined).length/1024).toFixed(1) + ' KB');
+  setStat('s-time',   elapsed + ' ms');
+  document.getElementById('total-count').textContent = allRecords.length.toLocaleString() + ' loaded';
+  document.getElementById('vpage-indicator').textContent = 'All / done';
+  document.getElementById('btn-vnext').disabled = true;
+
+  injectSaveButton(currentEndpoint, combined);
+  showToast(
+    (loadAllStop ? 'Stopped at ' : 'Loaded all ')
+    + allRecords.length.toLocaleString() + ' records'
+  );
+}
+
+function stopLoadAll(){ loadAllStop = true; showToast('Stopping after current page…'); }
+
+/* ════════════════════════════════════════════════
+   QUICK BUTTONS
+════════════════════════════════════════════════ */
+function quick(ep){
+  document.getElementById('path').value = ep;
+  loadData();
+}
+
+function quickReport(ep){
+  // SECURITY: validate endpoint even for built-in report buttons
+  try{ ep = sanitizeEndpoint(ep); }
+  catch(e){
+    setStat('s-status', 'Blocked', 'sv-err');
+    document.getElementById('output').textContent = '🔒 ' + e.message;
+    return;
+  }
+  document.getElementById('path').value = ep;
+  currentEndpoint = ep; allRecords = []; rpPage = 0;
+  setStat('s-endpoint', ep, '');
+  const fullPath = '/api4/' + ep;
+  document.getElementById('json-path-label').textContent = 'GET ' + fullPath;
+  setStat('s-status', 'Loading…', 'sv-load');
+  const t0 = performance.now();
+  pmr({ type:'api-request', method:'GET', path:fullPath })
+    .then(data => processData(data, Math.round(performance.now()-t0), ep))
+    .catch(e => {
+      setStat('s-status', 'Error', 'sv-err');
+      document.getElementById('output').textContent = '⚠ Error: ' + e.message;
+    });
+}
+
+/* ════════════════════════════════════════════════
+   SAVE BUTTON (injected into json toolbar)
+════════════════════════════════════════════════ */
+function injectSaveButton(ep, data){
+  const old = document.getElementById('toolbar-save');
+  if(old) old.remove();
+  const btn = document.createElement('button');
+  btn.id = 'toolbar-save';
+  btn.className = 'toolbar-save-btn';
+  btn.textContent = '+ Add to Context';
+  btn.onclick = () => saveItem(ep, data, btn);
+  document.querySelector('.json-toolbar').appendChild(btn);
+}
+
+/* ════════════════════════════════════════════════
+   CONTEXT BUFFER
+════════════════════════════════════════════════ */
+function saveItem(ep, data, btn){
+  if(savedItems.find(i => i.name === ep)){ showToast('Already in buffer: ' + ep); return; }
+  const records = allRecords.length || getItems(data).length || 1;
+  const size    = (JSON.stringify(data).length / 1024).toFixed(1);
+  savedItems.push({ name:ep, json:data, records, size, selected:false });
+  btn.textContent = '✓ In Context';
+  btn.style.background = 'rgba(16,185,129,.25)';
+  btn.disabled = true;
+  updateBadge(); renderSavedItems();
+  showToast('Added "' + ep + '" to Context Buffer');
+}
+
+function updateBadge(){
+  const checked = savedItems.filter(i => i.selected).length;
+  document.getElementById('sel-badge').textContent = savedItems.length;
+  document.getElementById('sel-copy-btn').disabled = checked === 0;
+  document.getElementById('sel-footer-info').textContent = checked
+    ? checked + ' of ' + savedItems.length + ' selected'
+    : 'Tick responses to include them in the copy';
+}
+
+function renderSavedItems(){
+  const box = document.getElementById('sel-items');
+  if(!savedItems.length){
+    box.innerHTML = `<div class="sel-empty">No responses saved yet.<br><br>Load any endpoint, then click<br><code>+ Add to Context</code> in the toolbar.</div>`;
+    return;
+  }
+  box.innerHTML = '';
+  savedItems.forEach((item, i)=>{
+    const preview = JSON.stringify(item.json).slice(0,90) + '…';
+    const div = document.createElement('div');
+    div.className = 'sel-item' + (item.selected ? ' checked' : '');
+    div.innerHTML = `
+      <input type="checkbox" ${item.selected?'checked':''} onchange="toggleSaved(${i},this)">
+      <div class="sel-item-body">
+        <div class="sel-item-ep">
+          <span class="sel-item-ep-method">GET</span>/api4/${item.name}
+        </div>
+        <div class="sel-item-preview">${preview}</div>
+        <div class="sel-item-meta">
+          <span>${item.records} records</span>
+          <span>${item.size} KB</span>
+        </div>
+      </div>
+      <button class="sel-remove" onclick="removeSaved(${i})" title="Remove">✕</button>`;
+    box.appendChild(div);
+  });
+}
+
+function toggleSaved(i, cb){
+  savedItems[i].selected = cb.checked;
+  cb.closest('.sel-item').classList.toggle('checked', cb.checked);
+  updateBadge();
+  const selected = savedItems.filter(x => x.selected);
+  const previewEl = document.getElementById('sel-preview');
+  if(selected.length){
+    previewEl.classList.add('visible');
+    const combined = {}; selected.forEach(s => combined[s.name] = s.json);
+    const text = JSON.stringify(combined, null, 2);
+    previewEl.textContent = text.slice(0,2500) + (text.length>2500 ? '\n\n…(truncated preview)' : '');
+  } else {
+    previewEl.classList.remove('visible');
+  }
+}
+
+function removeSaved(i){ savedItems.splice(i,1); renderSavedItems(); updateBadge(); }
+
+function clearSaved(){
+  savedItems = []; renderSavedItems(); updateBadge();
+  document.getElementById('sel-preview').classList.remove('visible');
+}
+
+function copySelected(){
+  const selected = savedItems.filter(i => i.selected);
+  if(!selected.length){ showToast('Nothing selected'); return; }
+  const combined = {}; selected.forEach(s => combined[s.name] = s.json);
+  robustCopy(JSON.stringify(combined, null, 2)).then(ok =>{
+    showToast(ok !== false
+      ? 'Copied ' + selected.length + ' endpoint(s)'
+      : 'Copy failed — try right-click from preview');
+    closePanel();
+  });
+}
+
+/* ════════════════════════════════════════════════
+   AI BUILDER
+════════════════════════════════════════════════ */
+let selectedStyle    = 'dark';
+let selectedTemplate = '';
+
+const TEMPLATE_PRESETS = {
+  dashboard: 'Dashboard showing total count, total value, and summary statistics',
+  table:     'Searchable, sortable data table with all key fields',
+  kpi:       'KPI cards showing key metrics with labels and values',
+  chart:     'Bar or line chart visualizing key numeric fields over time or by category',
+  search:    'Search and filter interface with real-time results',
+  form:      'Form to create or edit a record with validation',
+  export:    'Table with CSV export button for all records',
+  custom:    ''
+};
+
+function setTemplate(t, e){
+  selectedTemplate = t;
+  document.querySelectorAll('#template-chips .chip').forEach(b => b.classList.remove('active'));
+  if(e && e.target) e.target.classList.add('active');
+  if(t !== 'custom') document.getElementById('ai-goal').value = TEMPLATE_PRESETS[t] || '';
+  if(t === 'custom') document.getElementById('ai-goal').focus();
+}
+
+function setStyle(s){
+  selectedStyle = s;
+  ['dark','light','minimal'].forEach(n =>
+    document.getElementById('style-'+n).classList.toggle('active', n===s)
+  );
+}
+
+function refreshBuilder(){
+  const incUUIDs = document.getElementById('ai-opt-uuids').checked;
+  let paths = allPaths.filter(p => p.checked && p.type!=='obj' && p.type!=='arr');
+  if(!incUUIDs) paths = paths.filter(p => !p.isUUID);
+  paths = paths.filter(p => !p.path.includes('obsolete'));
+
+  const badge = document.getElementById('field-count-badge');
+  if(badge) badge.textContent = paths.length + ' fields selected';
+
+  const tagBox = document.getElementById('field-tags');
+  if(tagBox){
+    tagBox.innerHTML = '';
+    paths.slice(0,16).forEach(({ path })=>{
+      const el = document.createElement('span');
+      el.className = 'field-tag';
+      el.textContent = path.split('.').pop();
+      el.title = path;
+      tagBox.appendChild(el);
+    });
+    if(paths.length > 16){
+      const el = document.createElement('span');
+      el.className = 'field-tag';
+      el.style.cssText = 'background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.2);color:var(--accent2)';
+      el.textContent = '+' + (paths.length-16) + ' more';
+      tagBox.appendChild(el);
+    }
+  }
+
+  const epBox = document.getElementById('endpoint-list');
+  if(epBox){
+    epBox.innerHTML = '';
+    const eps = currentEndpoint ? [currentEndpoint] : [];
+    savedItems.forEach(s => { if(s.name !== currentEndpoint) eps.push(s.name); });
+    if(eps.length){
+      eps.forEach(ep =>{
+        const el = document.createElement('div');
+        el.className = 'ep-tag';
+        el.innerHTML = `<span class="ep-dot"></span>/api4/${ep}`;
+        epBox.appendChild(el);
+      });
+    } else {
+      epBox.innerHTML = '<div style="font-size:10px;color:var(--dim);padding:4px">No endpoint loaded yet</div>';
+    }
+  }
+}
+
+function generatePrompt(){
+  if(!latestJson && !allRecords.length){ showToast('Load an endpoint first'); return; }
+  refreshBuilder();
+
+  const incSchema   = document.getElementById('ai-opt-schema').checked;
+  const incSamples  = document.getElementById('ai-opt-samples').checked;
+  const incUUIDs    = document.getElementById('ai-opt-uuids').checked;
+  const incSkeleton = document.getElementById('ai-opt-skeleton').checked;
+  const incComments = document.getElementById('ai-opt-comments').checked;
+  const goal        = document.getElementById('ai-goal').value.trim() || 'dashboard showing key data from this endpoint';
+
+  const eps = [];
+  if(currentEndpoint) eps.push({ name:currentEndpoint, json:latestJson, records:allRecords });
+  savedItems.forEach(s => { if(s.name !== currentEndpoint) eps.push({ name:s.name, json:s.json, records:[] }); });
+
+  let paths = allPaths.filter(p => p.checked && p.type!=='obj' && p.type!=='arr');
+  if(!incUUIDs) paths = paths.filter(p => !p.isUUID);
+  paths = paths.filter(p => !p.path.includes('obsolete'));
+
+  const THEMES = {
+    dark:    { bg:'#0d1117', surface:'#161b22', text:'#e6edf3', accent:'#58a6ff', muted:'#8b949e', border:'#30363d', green:'#3fb950', red:'#f85149', font:'system-ui,sans-serif' },
+    light:   { bg:'#ffffff', surface:'#f6f8fa', text:'#24292f', accent:'#0969da', muted:'#57606a', border:'#d0d7de', green:'#1a7f37', red:'#cf222e', font:'system-ui,sans-serif' },
+    minimal: { bg:'#fafafa', surface:'#ffffff', text:'#111827', accent:'#6366f1', muted:'#6b7280', border:'#e5e7eb', green:'#059669', red:'#dc2626', font:'system-ui,sans-serif' }
+  };
+  const T = THEMES[selectedStyle] || THEMES.dark;
+
+  function schemaBlock(epName, epPaths){
+    let s = `  Endpoint: GET /api4/${epName}\n`;
+    s += `  Fields (dot-notation path | type${incSamples?' | sample value':''})\n`;
+    let lastTop = '';
+    epPaths.forEach(({ path, friendlyType, sample })=>{
+      const top = path.split('.')[0];
+      if(top !== lastTop){ s += `\n    [${top}]\n`; lastTop = top; }
+      const sv = incSamples ? `  →  ${sample}` : '';
+      s += `      ${path.padEnd(44,' ')} ${friendlyType}${sv}\n`;
+    });
+    return s;
+  }
+
+  const fnName       = 'get' + toPascal(currentEndpoint);
+  const primaryPaths = paths.slice(0, 12);
+  const numFields    = paths.filter(p => p.type==='num').slice(0, 3);
+  const valueField   = numFields[0] ? numFields[0].path : 'amount';
+
+  let skeletonSection = '';
+  if(incSkeleton){
+    const pathComments = paths.slice(0,20).map(p => `      // ${p.path}`).join('\n');
+
+    skeletonSection = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMPLETE EXTENSION SKELETON
+  Replace every ??? with real implementation.
+  DO NOT modify postMessage or the pagination loop.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${goal}</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:${T.font}; background:${T.bg}; color:${T.text}; min-height:100vh; padding:20px; }
+
+  .ctrl-bar {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:12px 16px; margin-bottom:18px;
+    background:${T.surface}; border:1px solid ${T.border}; border-radius:10px;
+  }
+  .load-btn {
+    padding:8px 20px; border:none; border-radius:7px; cursor:pointer;
+    font-size:13px; font-weight:700; background:${T.accent}; color:#fff; transition:opacity .15s;
+  }
+  .load-btn:disabled { opacity:.45; cursor:not-allowed; }
+  .prog-wrap { flex:1; min-width:100px; height:5px; background:${T.border}; border-radius:3px; overflow:hidden; }
+  .prog-bar  { height:100%; width:0%; background:${T.accent}; border-radius:3px; transition:width .25s; }
+  .status-txt { font-size:12px; color:${T.muted}; white-space:nowrap; }
+  .err-box { color:${T.red}; background:${T.surface}; border:1px solid ${T.border}; border-radius:8px; padding:12px 16px; font-size:13px; margin-bottom:16px; }
+
+  /* ??? Add your component styles here */
+</style>
+</head>
+<body>
+
+<div class="ctrl-bar">
+  <button class="load-btn" id="load-btn" onclick="loadAllRecords()">⬇ Load All Records</button>
+  <div class="prog-wrap"><div class="prog-bar" id="prog-bar"></div></div>
+  <span class="status-txt" id="status-txt">Press Load to fetch data from Manager</span>
+</div>
+
+<!-- ??? Add your HTML structure here -->
+<div id="app"></div>
+
+<script>
+/* ══════════════════════════════════
+   postMessage helper — DO NOT MODIFY
+══════════════════════════════════ */
+function postMessageWithResponse(message) {
+  return new Promise((resolve, reject) => {
+    const requestId = crypto.randomUUID();
+    const timer = setTimeout(() => {
+      window.removeEventListener('message', handler);
+      reject(new Error('Timeout — is this running inside Manager.io?'));
+    }, 15000);
+    function handler(event) {
+      if (event.data?.type?.endsWith('-response') && event.data?.requestId === requestId) {
+        clearTimeout(timer);
+        window.removeEventListener('message', handler);
+        resolve(event.data.body);
+      }
+    }
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ ...message, requestId }, '*');
+  });
+}
+
+/* ══════════════════════════════════
+   ${fnName}
+   Fetches ALL pages — DO NOT SIMPLIFY.
+   Manager.io returns ≤50 records per call.
+   This loop follows next_page_token until
+   every record is loaded.
+══════════════════════════════════ */
+async function ${fnName}(onProgress) {
+  const allItems = [];
+  let nextToken  = null;
+  let pageNum    = 0;
+  let apiTotal   = null;
+
+  do {
+    const path = nextToken
+      ? '/api4/${currentEndpoint}?PageSize=99999&next_page_token=' + encodeURIComponent(nextToken)
+      : '/api4/${currentEndpoint}?PageSize=99999';
+
+    const data = await postMessageWithResponse({ type: 'api-request', method: 'GET', path });
+
+    const page = Array.isArray(data) ? data : (data.items || data.data || []);
+    allItems.push(...page);
+
+    nextToken = data.next_page_token || data.nextPageToken || data._links?.next?.href || null;
+
+    if (apiTotal === null) {
+      apiTotal = data.totalCount ?? data.total ?? data.count ?? data._metadata?.totalCount ?? null;
+    }
+
+    pageNum++;
+    if (onProgress) onProgress(allItems.length, apiTotal, pageNum);
+    if (pageNum >= 1000) break;
+
+  } while (nextToken);
+
+  return allItems;
+}
+
+/* ══════════════════════════════════
+   loadAllRecords — wired to Load button
+══════════════════════════════════ */
+async function loadAllRecords() {
+  const btn    = document.getElementById('load-btn');
+  const bar    = document.getElementById('prog-bar');
+  const status = document.getElementById('status-txt');
+  const app    = document.getElementById('app');
+
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  bar.style.width = '0%';
+  app.innerHTML = '';
+
+  try {
+    const items = await ${fnName}((loaded, total, page) => {
+      status.textContent = total
+        ? \`Page \${page} · \${loaded.toLocaleString()} / \${total.toLocaleString()} records\`
+        : \`Page \${page} · \${loaded.toLocaleString()} records loaded…\`;
+      if (total) bar.style.width = Math.min(95, Math.round(loaded / total * 100)) + '%';
+    });
+
+    bar.style.width = '100%';
+    status.textContent = \`✓ \${items.length.toLocaleString()} records loaded\`;
+    btn.textContent = '↺ Reload';
+    btn.disabled = false;
+    render(items);
+
+  } catch (err) {
+    status.textContent = '⚠ ' + err.message;
+    btn.textContent = '↺ Retry';
+    btn.disabled = false;
+    app.innerHTML = \`<div class="err-box">⚠ \${err.message}<br><small>Make sure this is running inside Manager.io</small></div>\`;
+  }
+}
+
+/* ══════════════════════════════════
+   render(items) — IMPLEMENT THIS
+   items = all records from /api4/${currentEndpoint}
+══════════════════════════════════ */
+function render(items) {
+  const app = document.getElementById('app');
+
+  /*
+  ??? IMPLEMENT YOUR UI HERE
+
+  Available fields on each item:
+${pathComments}
+
+  Goal: ${goal}
+
+  Access pattern examples:
+${primaryPaths.slice(0,6).map(({ path })=>{
+  const parts = path.split('.');
+  return `  //   item.${parts[0]}${parts.slice(1).map(p=>`?.${p}`).join('')}`;
+}).join('\n')}
+
+  Helpful snippets:
+  const total   = items.length;
+  const sum     = items.reduce((a,b) => a + (b?.${valueField}||0), 0);
+  const fmt     = v => '$' + (v||0).toLocaleString(undefined, { minimumFractionDigits:2 });
+  const sorted  = [...items].sort((a,b) => (b?.${valueField}||0) - (a?.${valueField}||0));
+  const grouped = items.reduce((m,i)=>{ const k=i?.someKey; (m[k]=m[k]||[]).push(i); return m; }, {});
+  */
+
+  app.innerHTML = \`<p style="color:${T.muted};padding:20px">??? Implement render(items) — \${items.length} records available</p>\`;
+}
+<\\/script>
+</body>
+</html>`;
+  }
+
+  // ── Assemble full prompt ──
+  let out = '';
+  out += `╔══════════════════════════════════════════════════════════════╗\n`;
+  out += `║   MANAGER.IO EXTENSION — COMPLETE BUILD PROMPT              ║\n`;
+  out += `╚══════════════════════════════════════════════════════════════╝\n\n`;
+
+  out += `TASK\n${'─'.repeat(60)}\n`;
+  out += `Build a complete, working Manager.io browser extension.\n`;
+  out += `Goal:           ${goal}\n`;
+  out += `Visual style:   ${selectedStyle}\n`;
+  out += `Primary endpoint: GET /api4/${currentEndpoint}\n`;
+  if(eps.length > 1) out += `Additional:     ${eps.slice(1).map(e=>'/api4/'+e.name).join(', ')}\n`;
+  out += `\n`;
+
+  out += `MANAGER.IO EXTENSION RULES\n${'─'.repeat(60)}\n`;
+  out += `1. An extension is a SINGLE self-contained HTML file.\n`;
+  out += `2. It is loaded inside an <iframe> by Manager.io.\n`;
+  out += `3. The ONLY way to call the Manager API is postMessageWithResponse().\n`;
+  out += `   The exact implementation is in the skeleton below — copy it verbatim.\n`;
+  out += `4. /api4/ENDPOINT is automatically scoped to the current business.\n`;
+  out += `5. No backend, no npm, no build step — pure HTML/CSS/JS.\n`;
+  out += `6. CDN libraries (Chart.js, Fuse.js, etc.) are allowed via <script src>.\n`;
+  out += `7. This is a READ-ONLY (GET) extension — do not include write operations.\n`;
+  out += `8. PAGINATION REQUIRED: API returns max 50 records per page.\n`;
+  out += `   The fetch function in the skeleton handles this automatically.\n`;
+  out += `   DO NOT simplify it to a single fetch — data will silently be capped.\n\n`;
+
+  if(incSchema){
+    out += `DATA SCHEMA\n${'─'.repeat(60)}\n`;
+    out += schemaBlock(currentEndpoint, paths);
+    savedItems.forEach(s =>{
+      const sPaths = [];
+      function walkPaths(obj, prefix){
+        if(!obj || typeof obj !== 'object') return;
+        for(const k of Object.keys(obj).slice(0,100)){
+          const val = obj[k]; const p = prefix ? prefix+'.'+k : k;
+          const tag = typeTag(val);
+          if(tag.type!=='obj'&&tag.type!=='arr') sPaths.push({ path:p, friendlyType:tag.friendlyType, sample:tag.sample });
+          else walkPaths(val, p);
+        }
+      }
+      const items2 = getItems(s.json);
+      if(items2.length) walkPaths(items2[0],'');
+      else walkPaths(s.json,'');
+      if(sPaths.length){ out += `\n`; out += schemaBlock(s.name, sPaths.slice(0,40)); }
+    });
+    out += `\n`;
+  }
+
+  out += skeletonSection;
+
+  out += `\n\nFINAL INSTRUCTIONS\n${'─'.repeat(60)}\n`;
+  out += `OUTPUT FORMAT\n`;
+  out += `• Return ONLY the raw HTML — starting with <!doctype html>.\n`;
+  out += `• NO markdown fences, NO preamble, NO trailing notes. Just HTML.\n\n`;
+  out += `ARCHITECTURE — NON-NEGOTIABLE\n`;
+  out += `• Single, self-contained HTML file. All JS and CSS inline.\n`;
+  out += `• postMessageWithResponse() copied exactly from the skeleton.\n`;
+  out += `• CDN libs via <script src> are allowed.\n\n`;
+  out += `PAGINATION — DO NOT SIMPLIFY\n`;
+  out += `• Manager.io returns at most 50 records per request.\n`;
+  out += `• Keep the full pagination loop — it follows next_page_token.\n`;
+  out += `• Never replace it with a single fetch call.\n\n`;
+  out += `IMPLEMENTATION\n`;
+  out += `• Goal: ${goal}\n`;
+  out += `• Fully implement render(items). No stubs, no placeholders.\n`;
+  out += `• Use field paths exactly as shown in DATA SCHEMA.\n`;
+  out += `• Prefer optional chaining: item?.field rather than item.field.\n\n`;
+  out += `VISUAL QUALITY — ${selectedStyle.toUpperCase()} THEME\n`;
+  out += `• Apply the ${selectedStyle} theme consistently. Look polished and production-ready.\n`;
+  out += `• Format numbers with locale separators. Dates must be human-readable.\n`;
+  out += `• Currency: correct symbol + 2 decimal places.\n\n`;
+  out += `ROBUSTNESS\n`;
+  out += `• Empty dataset → show clear empty-state message.\n`;
+  out += `• API errors → catch all rejections, show user-friendly error panel.\n`;
+  out += `• Null/undefined fields → optional chaining + nullish fallbacks.\n`;
+  out += `• Division by zero → guard all percentages and averages.\n\n`;
+  if(incComments) out += `CODE CLARITY\n• Brief inline comments above each major section.\n\n`;
+  out += `SELF-CHECK BEFORE FINISHING\n`;
+  out += `✓ File starts with <!doctype html>, no markdown fences?\n`;
+  out += `✓ postMessageWithResponse() copied verbatim?\n`;
+  out += `✓ Full pagination loop present and untouched?\n`;
+  out += `✓ render(items) fully implemented (not a stub)?\n`;
+  out += `✓ Edge cases handled (empty, error, single record)?\n`;
+  out += `✓ UI matches the ${selectedStyle} theme and looks production-ready?\n`;
+
+  document.getElementById('ai-output').value = out;
+  document.getElementById('ai-output-label').textContent =
+    `${out.length.toLocaleString()} chars · ${paths.length} fields · ready to paste into any AI`;
+  document.getElementById('btn-download').style.display = 'inline-block';
+  showToast('Prompt generated — ' + paths.length + ' fields');
+}
+
+function toPascal(str){
+  return (str||'').split(/[-_]/).map(w => w.charAt(0).toUpperCase()+w.slice(1)).join('');
+}
+
+function copyPrompt(){
+  const text = document.getElementById('ai-output').value;
+  if(!text.trim()){ showToast('Generate a prompt first'); return; }
+  robustCopy(text).then(ok =>
+    showToast(ok !== false ? '✓ Prompt copied — paste into Claude, ChatGPT, or Gemini' : 'Copy failed — select all and Ctrl+C')
+  );
+}
+
+function downloadSkeleton(){
+  const text = document.getElementById('ai-output').value;
+  if(!text.trim()){ showToast('Generate a prompt first'); return; }
+  const htmlStart = text.indexOf('<!doctype html>');
+  const blob = new Blob([htmlStart >= 0 ? text.slice(htmlStart) : text], { type:'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (currentEndpoint||'extension').replace(/[^a-z0-9-]/gi,'-') + '-skeleton.html';
+  a.click();
+  showToast('Skeleton downloaded');
+}
+
+/* ════════════════════════════════════════════════
+   PANEL & OVERLAY
+════════════════════════════════════════════════ */
+function switchTab(name){
+  ['buf','builder'].forEach(n =>{
+    document.getElementById('tab-'+n).classList.toggle('active', n===name);
+    document.getElementById('ps-'+n).classList.toggle('active', n===name);
+  });
+  if(name === 'builder') refreshBuilder();
+}
+
+function openPanel(){
+  document.getElementById('ai-panel').classList.add('open');
+  document.getElementById('panel-overlay').classList.add('open');
+  renderSavedItems(); updateBadge();
+}
+
+function closePanel(){
+  document.getElementById('ai-panel').classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('open');
+}
+
+/* ════════════════════════════════════════════════
+   COPY / CLEAR ACTIONS
+════════════════════════════════════════════════ */
+function copyJson(){
+  if(!latestJson){ showToast('Nothing to copy'); return; }
+  const data = allRecords.length > 1 ? { items:allRecords } : latestJson;
+  robustCopy(JSON.stringify(data, null, 2)).then(ok =>
+    showToast(ok !== false ? 'JSON copied to clipboard' : 'Copy failed')
+  );
+}
+
+function clearAll(){
+  latestJson = null; allRecords = []; allPaths = []; rpPage = 0; currentNext = null;
+  document.getElementById('output').textContent = 'Cleared — select an endpoint above.';
+  document.getElementById('path-list').innerHTML = '';
+  document.getElementById('path-count').textContent = '0 paths';
+  document.getElementById('json-path-label').textContent = 'No data loaded';
+  document.getElementById('path-search').value = '';
+  document.getElementById('progressbar').classList.remove('visible');
+  document.getElementById('result-pager').classList.remove('visible');
+  ['s-status','s-items','s-keys','s-size','s-time'].forEach(id =>
+    setStat(id, id==='s-status'?'Idle':id==='s-size'?'0 KB':id==='s-time'?'— ms':'0', 'sv-idle')
+  );
+  setStat('s-endpoint', '—', 'sv-idle');
+  const old = document.getElementById('toolbar-save'); if(old) old.remove();
+}
+
+/* ════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════ */
+function showToast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.setProperty('--toast-accent', isError ? 'var(--red2)' : 'var(--green2)');
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 2600);
+}
+
+/* ════════════════════════════════════════════════
+   GUIDE
+════════════════════════════════════════════════ */
+function openGuide(){
+  document.getElementById('guide-overlay').classList.add('open');
+  document.getElementById('guide-modal').scrollTop = 0;
+}
+function closeGuide(){
+  document.getElementById('guide-overlay').classList.remove('open');
+}
+function handleGuideClick(e){
+  if(e.target === document.getElementById('guide-overlay')) closeGuide();
+}
+
+/* ════════════════════════════════════════════════
+   KEYBOARD
+════════════════════════════════════════════════ */
+['path','pagesize'].forEach(id =>
+  document.getElementById(id).addEventListener('keydown', e =>{ if(e.key==='Enter') loadData(); })
+);
+document.addEventListener('keydown', e =>{
+  if(e.key === 'Escape'){ closeGuide(); closePanel(); closeHireModal(); closeSecurityModal(); }
+});
+</script>
+</body>
+</html>
