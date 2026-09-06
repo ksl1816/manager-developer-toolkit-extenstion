@@ -12,7 +12,7 @@
 
 ## What It Does
 
-A single-file extension that runs inside Manager.io. It turns the Manager.io API into something anyone can work with — explore endpoints visually, pick the fields you need, and get a structured AI prompt that Claude, ChatGPT, or Gemini can turn into a working `.html` extension.
+A single-file extension that runs inside Manager.io. It turns the Manager.io API into something anyone can work with — explore endpoints visually, pick the fields you need, and get a structured prompt that generates a working extension.
 
 **Workflow**
 
@@ -51,7 +51,7 @@ https://ksl1816.github.io/manager-extension-toolkit/
 
 **2. Use it**
 
-Click any quick endpoint → inspect the schema → tick the fields you want → click the floating **⎘ AI Context Buffer** button → switch to the **AI Builder** tab → fill in the 5 steps → **⚡ Generate**.
+Click any quick endpoint → inspect the schema → tick the fields you want → click the floating **⎘ AI Context Buffer** button → switch to the **AI Builder** tab → fill in the 5 steps and generate the final prompt.
 
 Copy the output, paste it into Claude / ChatGPT / Gemini, save the returned HTML, and install it back into Manager.io.
 
@@ -61,7 +61,7 @@ Copy the output, paste it into Claude / ChatGPT / Gemini, save the returned HTML
 
 ## Supported Endpoints
 
-**Lists:** `customer-batch` · `supplier-batch` · `sales-invoice-batch` · `purchase-invoice-batch` · `receipt-batch` · `payment-batch` · `inventory-item-batch` · `employee-batch` · `bank-or-cash-account-batch` · `journal-entry-batch` · `sales-quote-batch` · `sales-order-batch` · `purchase-order-batch` · `expense-claim-batch`
+**Lists:** `customer-batch` · `supplier-batch` · `sales-invoice-batch` · `purchase-invoice-batch` · `receipt-batch` · `payment-batch` · `inventory-item-batch` · `employee-batch` · `bank-or-cash-account-batch` · `inventory-item-starting-balance-batch`
 
 **Reports:** `aged-receivables-batch` · `aged-payables-batch` · `trial-balance-batch` · `profit-and-loss-statement-batch` · `balance-sheet-batch` · `general-ledger-transactions-batch`
 
@@ -92,6 +92,8 @@ Click the **🔒 Secure** badge in the top bar to inspect the active layer live.
 - **Single file** — works as static hosting anywhere (GitHub Pages, Netlify, Vercel)
 - **AI-agnostic** — the generated prompt works with any LLM
 - **Responsive** — sidebar collapses on small screens
+- **Endpoint naming** — common list endpoints use the `-batch` suffix (for example `sales-invoice-batch`); type the exact path into the explorer or pick from the quick endpoints list.
+- **Pagination** — the tool follows Manager.io pagination tokens (next_page_token / nextPageToken / _links.next.href) to fetch complete lists.
 
 ---
 
