@@ -10,9 +10,15 @@
 
 ---
 
+## 📌 Maintenance Notice
+
+This extension is in **maintenance mode**. Bug fixes and critical improvements will be applied as needed, but no new features are planned.
+
+---
+
 ## What It Does
 
-A single-file extension that runs inside Manager.io. It turns the Manager.io API into something anyone can work with — explore endpoints visually, pick the fields you need, and get a structured prompt that generates a working extension.
+A single-file extension that runs inside Manager.io. It turns the Manager.io API into something anyone can work with — explore endpoints visually, pick the fields you need, and get a structured prompt ready to send to an AI.
 
 **Workflow**
 
@@ -51,7 +57,7 @@ https://ksl1816.github.io/manager-extension-toolkit/
 
 **2. Use it**
 
-Click any quick endpoint → inspect the schema → tick the fields you want → click the floating **⎘ AI Context Buffer** button → switch to the **AI Builder** tab → fill in the 5 steps and generate the final prompt.
+Click any quick endpoint → inspect the schema → tick the fields you want → click the floating **⎘ AI Context Buffer** button → switch to the **AI Builder** tab → fill in the 5 steps and copy the output.
 
 Copy the output, paste it into Claude / ChatGPT / Gemini, save the returned HTML, and install it back into Manager.io.
 
@@ -61,7 +67,7 @@ Copy the output, paste it into Claude / ChatGPT / Gemini, save the returned HTML
 
 ## Supported Endpoints
 
-**Lists:** `customer-batch` · `supplier-batch` · `sales-invoice-batch` · `purchase-invoice-batch` · `receipt-batch` · `payment-batch` · `inventory-item-batch` · `employee-batch` · `bank-or-cash-account-batch` · `inventory-item-starting-balance-batch`
+**Lists:** `customer-batch` · `supplier-batch` · `sales-invoice-batch` · `purchase-invoice-batch` · `receipt-batch` · `payment-batch` · `inventory-item-batch` · `employee-batch` · `bank-or-cash-account-batch` · `tax-code-batch` · `expense-claim-batch` · `journal-entry-batch` · `quote-batch` · `delivery-note-batch` · `build-batch`
 
 **Reports:** `aged-receivables-batch` · `aged-payables-batch` · `trial-balance-batch` · `profit-and-loss-statement-batch` · `balance-sheet-batch` · `general-ledger-transactions-batch`
 
